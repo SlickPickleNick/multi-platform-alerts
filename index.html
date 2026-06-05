@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SlickPickleNick Multiplatform Alerts</title>
+  <style>
+    :root {
+      --page-bg: #060812;
+      --panel-bg: rgba(10, 12, 20, 0.62);
+      --panel-open-bg: rgba(10, 12, 20, 0.78);
+      --card-bg: rgba(255, 255, 255, 0.055);
+      --card-hover: rgba(255, 255, 255, 0.075);
+      --line: rgba(255, 255, 255, 0.13);
+      --line-soft: rgba(255, 255, 255, 0.08);
+      --accent: rgba(120, 105, 255, 0.95);
+      --accent-soft: rgba(120, 105, 255, 0.18);
+      --text: rgba(255, 255, 255, 0.92);
+      --muted: rgba(255, 255, 255, 0.68);
+      --faint: rgba(255, 255, 255, 0.48);
+      --danger: #ff5577;
+      --success: #57f287;
+      --warning: #ffd166;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+      --radius-lg: 26px;
+      --radius-md: 20px;
+      --radius-sm: 14px;
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(120, 105, 255, 0.34), transparent 32%),
+        radial-gradient(circle at 88% 22%, rgba(0, 231, 1, 0.14), transparent 24%),
+        radial-gradient(circle at 55% 100%, rgba(205, 32, 31, 0.15), transparent 34%),
+        linear-gradient(135deg, #060812 0%, #090b16 48%, #05060b 100%);
+      color: var(--text);
+      font-family: var(--font);
+      overflow: hidden;
+    }
+
+    button, input, select, textarea { font: inherit; }
+
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible,
+    summary:focus-visible {
+      outline: 2px solid rgba(148, 137, 255, 0.95);
+      outline-offset: 3px;
+    }
+
+    .app {
+      height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(380px, 450px) 1fr;
+      gap: 18px;
+      padding: 18px;
+    }
+
+    .control-deck,
+    .stage {
+      background: var(--panel-bg);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      min-height: 0;
+    }
+
+    .control-deck {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .deck-header {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid var(--line-soft);
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), transparent);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 20px rgba(120, 105, 255, 0.9);
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    h1 {
+      font-size: clamp(24px, 4vw, 34px);
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+      text-transform: uppercase;
+    }
+
+    .deck-header p {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .deck-scroll {
+      padding: 14px;
+      overflow: auto;
+      min-height: 0;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.22) transparent;
+    }
+
+    .deck-scroll::-webkit-scrollbar { width: 10px; }
+    .deck-scroll::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.18);
+      border-radius: 999px;
+      border: 3px solid transparent;
+      background-clip: content-box;
+    }
+
+    details.panel {
+      border: 1px solid var(--line-soft);
+      border-radius: 22px;
+      background: rgba(255,255,255,0.04);
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    details.panel[open] {
+      background: var(--panel-open-bg);
+      border-color: rgba(255,255,255,0.18);
+    }
+
+    details.panel > summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 14px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      user-select: none;
+    }
+
+    details.panel > summary::-webkit-details-marker { display: none; }
+
+    .summary-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .platform-dot,
+    .general-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      background: var(--platform-color, var(--accent));
+      box-shadow: 0 0 22px color-mix(in srgb, var(--platform-color, #7869ff), transparent 35%);
+      flex: 0 0 auto;
+    }
+
+    .summary-title {
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .summary-meta {
+      color: var(--faint);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      flex: 0 0 auto;
+    }
+
+    .panel-body {
+      padding: 0 14px 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .control-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+      padding: 10px;
+      border-radius: 16px;
+      border: 1px solid transparent;
+      background: rgba(255,255,255,0.04);
+    }
+
+    .control-row:hover {
+      border-color: var(--line-soft);
+      background: var(--card-hover);
+    }
+
+    .control-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .control-label span:last-child {
+      color: var(--faint);
+      text-transform: none;
+      letter-spacing: 0;
+      font-weight: 700;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="number"],
+    input[type="url"],
+    select,
+    textarea {
+      width: 100%;
+      color: var(--text);
+      background: rgba(3, 5, 11, 0.72);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      min-height: 38px;
+      padding: 9px 10px;
+    }
+
+    textarea {
+      min-height: 64px;
+      resize: vertical;
+      line-height: 1.35;
+    }
+
+    input[type="color"] {
+      width: 100%;
+      height: 38px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(3, 5, 11, 0.72);
+      padding: 4px;
+    }
+
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #8b7cff;
+      flex: 0 0 auto;
+    }
+
+    input[type="range"] { width: 100%; }
+
+    .inline-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .event-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .event-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--line-soft);
+    }
+
+    .event-row strong {
+      display: block;
+      font-size: 12px;
+      letter-spacing: 0.02em;
+    }
+
+    .event-row small {
+      color: var(--faint);
+      display: block;
+      margin-top: 3px;
+      font-size: 11px;
+    }
+
+    .event-template {
+      grid-column: 1 / -1;
+      margin-top: 2px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.07);
+      color: var(--text);
+      border-radius: 999px;
+      min-height: 38px;
+      padding: 8px 13px;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.22);
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, rgba(120,105,255,0.95), rgba(66, 160, 255, 0.8));
+      border-color: rgba(255,255,255,0.24);
+    }
+
+    .btn.small {
+      min-height: 30px;
+      padding: 6px 10px;
+      font-size: 10px;
+    }
+
+    .stage {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      overflow: hidden;
+    }
+
+    .stage-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--line-soft);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+    }
+
+    .stage-title h2 {
+      font-size: clamp(24px, 4vw, 42px);
+      letter-spacing: -0.05em;
+      text-transform: uppercase;
+      line-height: 0.95;
+    }
+
+    .stage-title p {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      max-width: 760px;
+      line-height: 1.45;
+    }
+
+    .version-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--text);
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .preview-wrap {
+      padding: 18px;
+      display: grid;
+      grid-template-rows: minmax(300px, 1fr) auto;
+      gap: 14px;
+      min-height: 0;
+    }
+
+    .preview-frame-card {
+      position: relative;
+      min-height: 0;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(45deg, rgba(255,255,255,0.035) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.035) 75%),
+        linear-gradient(45deg, rgba(255,255,255,0.035) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.035) 75%);
+      background-position: 0 0, 16px 16px;
+      background-size: 32px 32px;
+    }
+
+    .preview-frame-card::before {
+      content: "OBS Preview";
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      z-index: 2;
+      padding: 7px 10px;
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(0,0,0,0.34);
+      border: 1px solid var(--line-soft);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+      background: transparent;
+    }
+
+    .url-card {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(255,255,255,0.055);
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .url-card label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .url-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .url-output {
+      min-height: 76px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 11px;
+      color: rgba(255,255,255,0.78);
+      word-break: break-all;
+    }
+
+    .note {
+      color: var(--faint);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .toast {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 999;
+      background: rgba(8, 10, 18, 0.9);
+      border: 1px solid var(--line);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      transform: translateY(20px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 1100px) {
+      body { overflow: auto; }
+      .app {
+        height: auto;
+        min-height: 100vh;
+        grid-template-columns: 1fr;
+      }
+      .control-deck { max-height: 720px; }
+      .stage { min-height: 720px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <aside class="control-deck" aria-label="Control Deck">
+      <header class="deck-header">
+        <div class="eyebrow">Control Deck</div>
+        <h1>Multiplatform Alerts</h1>
+        <p>Configure Streamer.bot WebSocket alerts, copy the OBS browser source URL, and test randomized enabled events.</p>
+      </header>
+      <section class="deck-scroll" id="controlDeck"></section>
+    </aside>
+
+    <section class="stage" aria-label="Preview and OBS URL">
+      <header class="stage-header">
+        <div class="stage-title">
+          <h2>Alert Builder</h2>
+          <p>Settings are encoded into the OBS browser source link. The live overlay subscribes directly to Streamer.bot events and does not require event-specific subactions.</p>
+        </div>
+        <div class="version-pill">v0.1.0</div>
+      </header>
+
+      <section class="preview-wrap">
+        <div class="preview-frame-card">
+          <iframe id="previewFrame" title="Alert overlay preview" allow="autoplay"></iframe>
+        </div>
+
+        <section class="url-card" aria-label="Generated OBS URL">
+          <label for="obsUrl">OBS Browser Source URL</label>
+          <textarea id="obsUrl" class="url-output" readonly></textarea>
+          <div class="url-actions">
+            <button class="btn primary" id="copyBtn" type="button">Copy OBS URL</button>
+            <button class="btn" id="refreshPreviewBtn" type="button">Refresh Preview</button>
+            <button class="btn" id="randomPreviewBtn" type="button">Trigger Random Alert</button>
+            <button class="btn" id="clearPreviewBtn" type="button">Clear Queue</button>
+          </div>
+          <p class="note">Profile image controls are only available for Twitch, YouTube, and Kick. Other platforms use platform badges only.</p>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">Copied</div>
+
+  <script>
+    const VERSION = "0.1.0";
+
+    const DEFAULT_GENERAL = {
+      durationMs: 8000,
+      transitionMs: 750,
+      position: "center",
+      scale: 100,
+      soundUrl: "",
+      volume: 70,
+      showBadge: true,
+      showConnectionStatus: false,
+      previewEnabled: true,
+      previewFrequencyMs: 7000
+    };
+
+    const DEFAULT_CONNECTION = {
+      host: "127.0.0.1",
+      port: 8080,
+      endpoint: "/",
+      password: ""
+    };
+
+    const PLATFORM_DEFINITIONS = [
+      {
+        id: "twitch",
+        label: "Twitch",
+        badge: "TW",
+        color: "#9146FF",
+        supportsAvatar: true,
+        subscribeSource: "twitch",
+        events: [
+          { key: "follow", label: "Follow", sourceEvent: "Follow", template: "{user} followed the channel" },
+          { key: "rewardRedemption", label: "Channel Point Redemption", sourceEvent: "RewardRedemption", template: "{user} redeemed {title} for {amount} points" },
+          { key: "cheer", label: "Bits / Cheers", sourceEvent: "Cheer", template: "{user} cheered {amount} bits" },
+          { key: "primeSub", label: "Prime Subscription", sourceEvent: "Sub", template: "{user} subscribed with Prime" },
+          { key: "newSub", label: "New Subscriber", sourceEvent: "Sub", template: "{user} subscribed at {tier}" },
+          { key: "resub", label: "Resubscription", sourceEvent: "ReSub", template: "{user} resubscribed for {months} months" },
+          { key: "giftSub", label: "Gifted Subscription", sourceEvent: "GiftSub", template: "{user} gifted a subscription to {recipient}" },
+          { key: "communityGift", label: "Community Gift", sourceEvent: "GiftBomb", template: "{user} gifted {amount} subscriptions to the community" },
+          { key: "raid", label: "Incoming Raid", sourceEvent: "Raid", template: "{user} raided with {amount} viewers" },
+          { key: "charityDonation", label: "Charity Donation", sourceEvent: "CharityDonation", template: "{user} donated {amount} to charity" }
+        ]
+      },
+      {
+        id: "youtube",
+        label: "YouTube",
+        badge: "YT",
+        color: "#CD201F",
+        supportsAvatar: true,
+        subscribeSource: "youTube",
+        events: [
+          { key: "subscribed", label: "Subscribed", sourceEvent: "NewSubscriber", template: "{user} subscribed" },
+          { key: "jewelsGifted", label: "Jewels Gifted", sourceEvent: "JewelsGifted", template: "{user} gifted {amount} jewels" },
+          { key: "superChat", label: "Super Chat", sourceEvent: "SuperChat", template: "{user} sent a {amount} Super Chat" },
+          { key: "superSticker", label: "Super Sticker", sourceEvent: "SuperSticker", template: "{user} sent a {amount} Super Sticker" },
+          { key: "membershipGift", label: "Membership Gift", sourceEvent: "MembershipGift", template: "{user} gifted {amount} memberships" },
+          { key: "memberMilestone", label: "Member Milestone", sourceEvent: "MemberMileStone", template: "{user} hit a member milestone" },
+          { key: "newSponsor", label: "New Sponsor", sourceEvent: "NewSponsor", template: "{user} became a sponsor" }
+        ]
+      },
+      {
+        id: "kick",
+        label: "Kick",
+        badge: "K",
+        color: "#00E701",
+        supportsAvatar: true,
+        subscribeSource: "kick",
+        events: [
+          { key: "rewardRedemption", label: "Channel Reward Redemption", sourceEvent: "RewardRedemption", template: "{user} redeemed {title}" },
+          { key: "follow", label: "Follow", sourceEvent: "Follow", template: "{user} followed the channel" },
+          { key: "giftedKicks", label: "Gifted Kicks", sourceEvent: "sGifted", template: "{user} gifted {amount} Kicks" },
+          { key: "giftSubscription", label: "Gift Subscription", sourceEvent: "GiftSubscription", template: "{user} gifted a subscription to {recipient}" },
+          { key: "massGiftSubscription", label: "Mass Gift Subscriptions", sourceEvent: "MassGiftSubscription", template: "{user} gifted {amount} subscriptions" },
+          { key: "resubscription", label: "Resubscription", sourceEvent: "Resubscription", template: "{user} resubscribed for {months} months" },
+          { key: "subscription", label: "Subscription", sourceEvent: "Subscription", template: "{user} subscribed" }
+        ]
+      },
+      {
+        id: "fourthwall",
+        label: "Fourthwall",
+        badge: "FW",
+        color: "#FFFFFF",
+        supportsAvatar: false,
+        subscribeSource: "fourthwall",
+        events: [
+          { key: "donation", label: "Donation", sourceEvent: "Donation", template: "{user} donated {amount}" },
+          { key: "giftPurchase", label: "Gift Purchase", sourceEvent: "GiftPurchase", template: "{user} purchased a gift" },
+          { key: "orderPlaced", label: "Order Placed", sourceEvent: "OrderPlaced", template: "{user} placed an order" },
+          { key: "subscriptionPurchased", label: "Subscription Purchased", sourceEvent: "SubscriptionPurchased", template: "{user} purchased a subscription" }
+        ]
+      },
+      {
+        id: "kofi",
+        label: "Ko-Fi",
+        badge: "KF",
+        color: "#29ABE0",
+        supportsAvatar: false,
+        subscribeSource: "kofi",
+        events: [
+          { key: "commission", label: "Commission", sourceEvent: "Commission", template: "{user} commissioned {title}" },
+          { key: "donation", label: "Donation", sourceEvent: "Donation", template: "{user} donated {amount}" },
+          { key: "resubscription", label: "Resubscription", sourceEvent: "Resubscription", template: "{user} renewed a Ko-Fi subscription" },
+          { key: "shopOrder", label: "Shop Order", sourceEvent: "ShopOrder", template: "{user} placed a Ko-Fi shop order" },
+          { key: "subscription", label: "Subscription", sourceEvent: "Subscription", template: "{user} started a Ko-Fi subscription" }
+        ]
+      },
+      {
+        id: "pallygg",
+        label: "Pally.gg",
+        badge: "PG",
+        color: "#7869FF",
+        supportsAvatar: false,
+        subscribeSource: "pallygg",
+        events: [
+          { key: "campaignTip", label: "Campaign Tip", sourceEvent: "CampaignTip", template: "{user} tipped {amount} to the campaign" }
+        ]
+      },
+      {
+        id: "patreon",
+        label: "Patreon",
+        badge: "PT",
+        color: "#FF424D",
+        supportsAvatar: false,
+        subscribeSource: "patreon",
+        events: [
+          { key: "followCreated", label: "Follow Created", sourceEvent: "FollowCreated", template: "{user} followed on Patreon" },
+          { key: "pledgeCreated", label: "Pledge Created", sourceEvent: "PledgeCreated", template: "{user} created a Patreon pledge" },
+          { key: "pledgeUpdated", label: "Pledge Updated", sourceEvent: "PledgeUpdated", template: "{user} updated a Patreon pledge" }
+        ]
+      },
+      {
+        id: "streamElements",
+        label: "StreamElements",
+        badge: "SE",
+        color: "#1000FF",
+        supportsAvatar: false,
+        subscribeSource: "streamElements",
+        events: [
+          { key: "tip", label: "Tip", sourceEvent: "Tip", template: "{user} tipped {amount}" }
+        ]
+      },
+      {
+        id: "streamlabs",
+        label: "Streamlabs",
+        badge: "SL",
+        color: "#80F5D2",
+        supportsAvatar: false,
+        subscribeSource: "streamlabs",
+        events: [
+          { key: "charityDonation", label: "Charity Donation", sourceEvent: "CharityDonation", template: "{user} donated {amount} to charity" },
+          { key: "donation", label: "Donation", sourceEvent: "Donation", template: "{user} donated {amount}" }
+        ]
+      },
+      {
+        id: "tipeeeStream",
+        label: "TipeeeStream",
+        badge: "TS",
+        color: "#FF8A00",
+        supportsAvatar: false,
+        subscribeSource: "tipeeeStream",
+        events: [
+          { key: "donation", label: "Donation", sourceEvent: "Donation", template: "{user} donated {amount}" }
+        ]
+      },
+      {
+        id: "treatStream",
+        label: "TreatStream",
+        badge: "TR",
+        color: "#FF5A7A",
+        supportsAvatar: false,
+        subscribeSource: "treatStream",
+        events: [
+          { key: "treat", label: "Treat", sourceEvent: "Treat", template: "{user} sent a treat: {title}" }
+        ]
+      }
+    ];
+
+    const state = createInitialState();
+    const controlDeck = document.getElementById("controlDeck");
+    const obsUrl = document.getElementById("obsUrl");
+    const previewFrame = document.getElementById("previewFrame");
+    let previewUpdateTimer = null;
+
+    function createInitialState() {
+      const saved = safeJsonParse(localStorage.getItem("spnMultiAlertsV010"));
+      const base = {
+        version: VERSION,
+        connection: { ...DEFAULT_CONNECTION },
+        general: { ...DEFAULT_GENERAL },
+        platforms: PLATFORM_DEFINITIONS.map(platform => ({
+          id: platform.id,
+          enabled: true,
+          color: platform.color,
+          showBadge: true,
+          showAvatar: platform.supportsAvatar,
+          soundUrl: "",
+          volume: 70,
+          events: platform.events.map(event => ({
+            key: event.key,
+            enabled: true,
+            template: event.template
+          }))
+        }))
+      };
+      return deepMerge(base, saved || {});
+    }
+
+    function render() {
+      controlDeck.innerHTML = "";
+      controlDeck.appendChild(renderGeneralPanel());
+      PLATFORM_DEFINITIONS.forEach(platform => controlDeck.appendChild(renderPlatformPanel(platform)));
+      updateOutput();
+    }
+
+    function renderGeneralPanel() {
+      const details = panelShell("General", "Core Settings", true, "general-dot");
+      const body = details.querySelector(".panel-body");
+
+      body.append(
+        makeTextControl("Streamer.bot Host", state.connection.host, value => state.connection.host = value, "127.0.0.1"),
+        makeNumberControl("Streamer.bot Port", state.connection.port, value => state.connection.port = Number(value || 8080), 1, 65535, 1),
+        makeTextControl("Endpoint", state.connection.endpoint, value => state.connection.endpoint = value || "/", "/"),
+        makePasswordControl("Password", state.connection.password, value => state.connection.password = value, "Optional; only needed if WebSocket auth is enforced"),
+        twoColumn(
+          makeNumberControl("Alert Duration", msToSeconds(state.general.durationMs), value => state.general.durationMs = secondsToMs(value), 1, 60, 0.25, "seconds"),
+          makeNumberControl("Transition Time", msToSeconds(state.general.transitionMs), value => state.general.transitionMs = secondsToMs(value), 0, 10, 0.25, "seconds")
+        ),
+        twoColumn(
+          makeSelectControl("Alert Position", state.general.position, [
+            ["center", "Center"], ["top", "Top"], ["bottom", "Bottom"], ["left", "Left"], ["right", "Right"]
+          ], value => state.general.position = value),
+          makeNumberControl("Alert Scale", state.general.scale, value => state.general.scale = Number(value || 100), 50, 200, 5, "%")
+        ),
+        makeTextControl("Global Sound URL", state.general.soundUrl, value => state.general.soundUrl = value, "https://.../alert.mp3"),
+        makeRangeControl("Global Volume", state.general.volume, value => state.general.volume = Number(value), 0, 100, "%"),
+        makeCheckboxControl("Show Platform Badge by Default", state.general.showBadge, checked => state.general.showBadge = checked),
+        makeCheckboxControl("Show Connection Status Badge", state.general.showConnectionStatus, checked => state.general.showConnectionStatus = checked),
+        makeCheckboxControl("Dashboard Preview Mode", state.general.previewEnabled, checked => state.general.previewEnabled = checked),
+        makeNumberControl("Preview Frequency", msToSeconds(state.general.previewFrequencyMs), value => state.general.previewFrequencyMs = secondsToMs(value), 2, 60, 0.5, "seconds")
+      );
+
+      return details;
+    }
+
+    function renderPlatformPanel(platformDef) {
+      const platformState = getPlatformState(platformDef.id);
+      const enabledCount = platformState.events.filter(event => event.enabled).length;
+      const details = panelShell(platformDef.label, `${enabledCount}/${platformDef.events.length} Events`, false, "platform-dot", platformState.color);
+      const body = details.querySelector(".panel-body");
+
+      body.append(
+        makeCheckboxControl(`Enable ${platformDef.label}`, platformState.enabled, checked => platformState.enabled = checked),
+        makeColorControl("Platform Color", platformState.color, value => platformState.color = value),
+        makeCheckboxControl("Show Platform Badge", platformState.showBadge, checked => platformState.showBadge = checked),
+        makeTextControl("Platform Sound Override", platformState.soundUrl, value => platformState.soundUrl = value, "Leave blank to use global sound"),
+        makeRangeControl("Platform Volume", platformState.volume, value => platformState.volume = Number(value), 0, 100, "%")
+      );
+
+      if (platformDef.supportsAvatar) {
+        body.appendChild(makeCheckboxControl("Show Profile Image When Available", platformState.showAvatar, checked => platformState.showAvatar = checked));
+      }
+
+      const eventList = document.createElement("div");
+      eventList.className = "event-list";
+      platformDef.events.forEach(eventDef => eventList.appendChild(renderEventRow(platformDef, eventDef, platformState)));
+      body.appendChild(sectionLabel("Events & Language"));
+      body.appendChild(eventList);
+      return details;
+    }
+
+    function renderEventRow(platformDef, eventDef, platformState) {
+      const eventState = platformState.events.find(event => event.key === eventDef.key);
+      const row = document.createElement("div");
+      row.className = "event-row";
+
+      const toggle = document.createElement("input");
+      toggle.type = "checkbox";
+      toggle.checked = eventState.enabled;
+      toggle.addEventListener("change", () => {
+        eventState.enabled = toggle.checked;
+        saveAndUpdate();
+        render();
+      });
+
+      const text = document.createElement("div");
+      text.innerHTML = `<strong>${escapeHtml(eventDef.label)}</strong><small>${escapeHtml(platformDef.label)}.${escapeHtml(eventDef.sourceEvent)}</small>`;
+
+      const test = document.createElement("button");
+      test.type = "button";
+      test.className = "btn small";
+      test.textContent = "Test";
+      test.addEventListener("click", () => sendPreviewEvent(platformDef.id, eventDef.key));
+
+      const templateWrap = document.createElement("div");
+      templateWrap.className = "event-template";
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = eventState.template;
+      input.setAttribute("aria-label", `${platformDef.label} ${eventDef.label} alert template`);
+      input.addEventListener("input", () => {
+        eventState.template = input.value;
+        saveAndUpdate(false);
+      });
+      templateWrap.appendChild(input);
+
+      row.append(toggle, text, test, templateWrap);
+      return row;
+    }
+
+    function panelShell(title, meta, open = false, dotClass = "platform-dot", color = "#7869FF") {
+      const details = document.createElement("details");
+      details.className = "panel";
+      details.open = open;
+      details.style.setProperty("--platform-color", color);
+      details.innerHTML = `
+        <summary>
+          <span class="summary-left">
+            <span class="${dotClass}" aria-hidden="true"></span>
+            <span class="summary-title">${escapeHtml(title)}</span>
+          </span>
+          <span class="summary-meta">${escapeHtml(meta)}</span>
+        </summary>
+        <div class="panel-body"></div>
+      `;
+      return details;
+    }
+
+    function sectionLabel(text) {
+      const div = document.createElement("div");
+      div.className = "control-label";
+      div.style.padding = "4px 2px 0";
+      div.innerHTML = `<span>${escapeHtml(text)}</span><span>{user} {amount} {title} {message}</span>`;
+      return div;
+    }
+
+    function twoColumn(a, b) {
+      const div = document.createElement("div");
+      div.className = "inline-grid";
+      div.append(a, b);
+      return div;
+    }
+
+    function makeControl(label, valueText, input) {
+      const wrap = document.createElement("label");
+      wrap.className = "control-row";
+      const labelRow = document.createElement("span");
+      labelRow.className = "control-label";
+      labelRow.innerHTML = `<span>${escapeHtml(label)}</span><span>${escapeHtml(valueText || "")}</span>`;
+      wrap.append(labelRow, input);
+      return wrap;
+    }
+
+    function makeTextControl(label, value, onInput, placeholder = "") {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = value || "";
+      input.placeholder = placeholder;
+      input.addEventListener("input", () => { onInput(input.value); saveAndUpdate(false); });
+      return makeControl(label, "", input);
+    }
+
+    function makePasswordControl(label, value, onInput, placeholder = "") {
+      const input = document.createElement("input");
+      input.type = "password";
+      input.value = value || "";
+      input.placeholder = placeholder;
+      input.addEventListener("input", () => { onInput(input.value); saveAndUpdate(false); });
+      return makeControl(label, "", input);
+    }
+
+    function makeNumberControl(label, value, onInput, min, max, step, suffix = "") {
+      const input = document.createElement("input");
+      input.type = "number";
+      input.value = value;
+      input.min = min;
+      input.max = max;
+      input.step = step;
+      input.addEventListener("input", () => { onInput(input.value); saveAndUpdate(false); });
+      return makeControl(label, suffix, input);
+    }
+
+    function makeRangeControl(label, value, onInput, min, max, suffix = "") {
+      const input = document.createElement("input");
+      input.type = "range";
+      input.value = value;
+      input.min = min;
+      input.max = max;
+      input.addEventListener("input", () => { onInput(input.value); saveAndUpdate(false); });
+      return makeControl(label, `${value}${suffix}`, input);
+    }
+
+    function makeColorControl(label, value, onInput) {
+      const input = document.createElement("input");
+      input.type = "color";
+      input.value = value || "#7869ff";
+      input.addEventListener("input", () => { onInput(input.value); saveAndUpdate(false); render(); });
+      return makeControl(label, value, input);
+    }
+
+    function makeSelectControl(label, value, options, onInput) {
+      const select = document.createElement("select");
+      options.forEach(([optionValue, labelText]) => {
+        const option = document.createElement("option");
+        option.value = optionValue;
+        option.textContent = labelText;
+        select.appendChild(option);
+      });
+      select.value = value;
+      select.addEventListener("change", () => { onInput(select.value); saveAndUpdate(false); });
+      return makeControl(label, "", select);
+    }
+
+    function makeCheckboxControl(label, checked, onChange) {
+      const wrap = document.createElement("label");
+      wrap.className = "control-row";
+      wrap.style.gridTemplateColumns = "1fr auto";
+      wrap.style.alignItems = "center";
+      const span = document.createElement("span");
+      span.className = "control-label";
+      span.innerHTML = `<span>${escapeHtml(label)}</span>`;
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.checked = checked;
+      input.addEventListener("change", () => { onChange(input.checked); saveAndUpdate(); render(); });
+      wrap.append(span, input);
+      return wrap;
+    }
+
+    function getPlatformState(id) {
+      return state.platforms.find(platform => platform.id === id);
+    }
+
+    function getEventState(platformId, eventKey) {
+      const platform = getPlatformState(platformId);
+      return platform.events.find(event => event.key === eventKey);
+    }
+
+    function buildConfig() {
+      return {
+        v: VERSION,
+        connection: { ...state.connection },
+        general: { ...state.general },
+        platforms: Object.fromEntries(state.platforms.map(platform => [platform.id, {
+          enabled: platform.enabled,
+          color: platform.color,
+          showBadge: platform.showBadge,
+          ...(PLATFORM_DEFINITIONS.find(def => def.id === platform.id)?.supportsAvatar ? { showAvatar: platform.showAvatar } : {}),
+          soundUrl: platform.soundUrl,
+          volume: platform.volume,
+          events: Object.fromEntries(platform.events.map(event => [event.key, {
+            enabled: event.enabled,
+            template: event.template
+          }]))
+        }]))
+      };
+    }
+
+    function updateOutput(updatePreview = true) {
+      const encoded = encodeConfig(buildConfig());
+      const overlay = new URL("overlay.html", window.location.href);
+      overlay.hash = `config=${encoded}`;
+      obsUrl.value = overlay.toString();
+
+      if (updatePreview) {
+        clearTimeout(previewUpdateTimer);
+        previewUpdateTimer = setTimeout(() => refreshPreview(), 250);
+      }
+    }
+
+    function refreshPreview() {
+      const encoded = encodeConfig(buildConfig());
+      const preview = new URL("overlay.html", window.location.href);
+      preview.hash = `config=${encoded}&preview=1`;
+      previewFrame.src = preview.toString();
+    }
+
+    function saveAndUpdate(updatePreview = true) {
+      localStorage.setItem("spnMultiAlertsV010", JSON.stringify(state));
+      updateOutput(updatePreview);
+    }
+
+    function sendPreviewEvent(platformId, eventKey) {
+      previewFrame.contentWindow?.postMessage({ type: "spn-alert-test", platformId, eventKey }, "*");
+    }
+
+    function sendPreviewCommand(type) {
+      previewFrame.contentWindow?.postMessage({ type }, "*");
+    }
+
+    function encodeConfig(config) {
+      const json = JSON.stringify(config);
+      const encoded = btoa(unescape(encodeURIComponent(json)));
+      return encoded.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+    }
+
+    function safeJsonParse(value) {
+      try { return value ? JSON.parse(value) : null; }
+      catch { return null; }
+    }
+
+    function deepMerge(target, source) {
+      if (!source || typeof source !== "object") return target;
+      for (const key of Object.keys(source)) {
+        if (Array.isArray(source[key])) {
+          if (key === "platforms") {
+            source[key].forEach(sourcePlatform => {
+              const targetPlatform = target.platforms.find(platform => platform.id === sourcePlatform.id);
+              if (targetPlatform) deepMerge(targetPlatform, sourcePlatform);
+            });
+          } else if (key === "events") {
+            source[key].forEach(sourceEvent => {
+              const targetEvent = target.events.find(event => event.key === sourceEvent.key);
+              if (targetEvent) deepMerge(targetEvent, sourceEvent);
+            });
+          } else {
+            target[key] = source[key];
+          }
+        } else if (source[key] && typeof source[key] === "object") {
+          target[key] = deepMerge(target[key] || {}, source[key]);
+        } else {
+          target[key] = source[key];
+        }
+      }
+      return target;
+    }
+
+    function msToSeconds(value) { return Math.round((Number(value || 0) / 1000) * 100) / 100; }
+    function secondsToMs(value) { return Math.round(Number(value || 0) * 1000); }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 1800);
+    }
+
+    document.getElementById("copyBtn").addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(obsUrl.value);
+        showToast("OBS URL copied");
+      } catch {
+        obsUrl.select();
+        document.execCommand("copy");
+        showToast("OBS URL copied");
+      }
+    });
+
+    document.getElementById("refreshPreviewBtn").addEventListener("click", () => {
+      refreshPreview();
+      showToast("Preview refreshed");
+    });
+
+    document.getElementById("randomPreviewBtn").addEventListener("click", () => sendPreviewCommand("spn-alert-preview-random"));
+    document.getElementById("clearPreviewBtn").addEventListener("click", () => sendPreviewCommand("spn-alert-clear"));
+
+    render();
+  </script>
+</body>
+</html>

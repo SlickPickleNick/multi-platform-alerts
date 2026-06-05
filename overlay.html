@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SlickPickleNick Alert Overlay</title>
+  <style>
+    :root {
+      --alert-color: #7869ff;
+      --scale: 1;
+      --transition: 750ms;
+      --panel-bg: rgba(10, 12, 20, 0.76);
+      --line: rgba(255, 255, 255, 0.15);
+      --line-soft: rgba(255, 255, 255, 0.08);
+      --text: rgba(255, 255, 255, 0.95);
+      --muted: rgba(255, 255, 255, 0.68);
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      font-family: var(--font);
+      color: var(--text);
+    }
+
+    body {
+      position: relative;
+    }
+
+    #stage {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      pointer-events: none;
+      padding: 44px;
+    }
+
+    #stage.position-center { align-items: center; justify-content: center; }
+    #stage.position-top { align-items: flex-start; justify-content: center; }
+    #stage.position-bottom { align-items: flex-end; justify-content: center; }
+    #stage.position-left { align-items: center; justify-content: flex-start; }
+    #stage.position-right { align-items: center; justify-content: flex-end; }
+
+    .alert-card {
+      --accent: var(--alert-color);
+      position: relative;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 18px;
+      align-items: center;
+      width: min(760px, calc(100vw - 88px));
+      min-height: 138px;
+      padding: 22px 24px;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background:
+        radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--accent), transparent 64%), transparent 44%),
+        linear-gradient(135deg, rgba(255,255,255,0.11), rgba(255,255,255,0.035)),
+        var(--panel-bg);
+      box-shadow:
+        0 28px 80px rgba(0, 0, 0, 0.54),
+        0 0 50px color-mix(in srgb, var(--accent), transparent 78%);
+      overflow: hidden;
+      transform: translateY(22px) scale(calc(var(--scale) * 0.96));
+      opacity: 0;
+      filter: blur(8px);
+      transition:
+        opacity var(--transition) cubic-bezier(.2,.8,.2,1),
+        transform var(--transition) cubic-bezier(.2,.8,.2,1),
+        filter var(--transition) cubic-bezier(.2,.8,.2,1);
+    }
+
+    .alert-card.show {
+      opacity: 1;
+      filter: blur(0);
+      transform: translateY(0) scale(var(--scale));
+    }
+
+    .alert-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 7px;
+      background: var(--accent);
+      box-shadow: 0 0 32px var(--accent);
+    }
+
+    .alert-card::after {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      background:
+        linear-gradient(120deg, transparent, rgba(255,255,255,0.16), transparent);
+      transform: translateX(-120%);
+      animation: sheen 2600ms ease-in-out infinite;
+      pointer-events: none;
+      opacity: 0.65;
+    }
+
+    @keyframes sheen {
+      0%, 45% { transform: translateX(-120%); }
+      100% { transform: translateX(120%); }
+    }
+
+    .media {
+      position: relative;
+      z-index: 1;
+      width: 92px;
+      height: 92px;
+      display: grid;
+      place-items: center;
+    }
+
+    .platform-badge,
+    .avatar,
+    .fallback-avatar {
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.38);
+    }
+
+    .platform-badge {
+      width: 86px;
+      height: 86px;
+      display: grid;
+      place-items: center;
+      background: color-mix(in srgb, var(--accent), rgba(0,0,0,0.58) 42%);
+      color: white;
+      font-weight: 1000;
+      letter-spacing: -0.08em;
+      font-size: 28px;
+      text-transform: uppercase;
+    }
+
+    .avatar,
+    .fallback-avatar {
+      width: 86px;
+      height: 86px;
+      object-fit: cover;
+      background: rgba(255,255,255,0.08);
+    }
+
+    .platform-chip {
+      position: absolute;
+      right: -2px;
+      bottom: -3px;
+      z-index: 2;
+      min-width: 34px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 999px;
+      padding: 0 8px;
+      background: color-mix(in srgb, var(--accent), rgba(0,0,0,0.7) 52%);
+      font-size: 10px;
+      font-weight: 1000;
+      letter-spacing: 0.04em;
+      color: #fff;
+    }
+
+    .content {
+      position: relative;
+      z-index: 1;
+      min-width: 0;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .meta span {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--line-soft);
+      background: rgba(255,255,255,0.06);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .headline {
+      font-size: clamp(28px, 4.8vw, 46px);
+      line-height: 0.98;
+      font-weight: 1000;
+      letter-spacing: -0.055em;
+      text-transform: uppercase;
+      overflow-wrap: anywhere;
+    }
+
+    .detail {
+      margin-top: 10px;
+      color: rgba(255,255,255,0.78);
+      font-size: clamp(15px, 2vw, 20px);
+      font-weight: 700;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+
+    .empty-media .alert-card {
+      grid-template-columns: minmax(0, 1fr);
+      padding-left: 28px;
+    }
+
+    .status-badge {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 20;
+      display: none;
+      max-width: min(440px, calc(100vw - 36px));
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(5, 7, 14, 0.78);
+      backdrop-filter: blur(16px);
+      color: rgba(255,255,255,0.76);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .status-badge.show { display: block; }
+    .status-badge.connected { color: #57f287; }
+    .status-badge.error { color: #ff5577; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .alert-card,
+      .alert-card::after {
+        transition: none;
+        animation: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="stage" class="position-center" aria-live="polite"></div>
+  <div id="statusBadge" class="status-badge">Disconnected</div>
+
+  <script>
+    const VERSION = "0.1.0";
+
+    const DEFAULT_GENERAL = {
+      durationMs: 8000,
+      transitionMs: 750,
+      position: "center",
+      scale: 100,
+      soundUrl: "",
+      volume: 70,
+      showBadge: true,
+      showConnectionStatus: false,
+      previewEnabled: true,
+      previewFrequencyMs: 7000
+    };
+
+    const DEFAULT_CONNECTION = {
+      host: "127.0.0.1",
+      port: 8080,
+      endpoint: "/",
+      password: ""
+    };
+
+    const PLATFORM_DEFINITIONS = [
+      {
+        id: "twitch",
+        label: "Twitch",
+        badge: "TW",
+        color: "#9146FF",
+        supportsAvatar: true,
+        subscribeSource: "twitch",
+        aliases: ["Twitch", "twitch"],
+        events: [
+          { key: "follow", label: "Follow", sourceEvent: "Follow", template: "{user} followed the channel" },
+          { key: "rewardRedemption", label: "Channel Point Redemption", sourceEvent: "RewardRedemption", template: "{user} redeemed {title} for {amount} points" },
+          { key: "cheer", label: "Bits / Cheers", sourceEvent: "Cheer", template: "{user} cheered {amount} bits" },
+          { key: "primeSub", label: "Prime Subscription", sourceEvent: "Sub", template: "{user} subscribed with Prime" },
+          { key: "newSub", label: "New Subscriber", sourceEvent: "Sub", template: "{user} subscribed at {tier}" },
+          { key: "resub", label: "Resubscription", sourceEvent: "ReSub", template: "{user} resubscribed for {months} months" },
+          { key: "giftSub", label: "Gifted Subscription", sourceEvent: "GiftSub", template: "{user} gifted a subscription to {recipient}" },
+          { key: "communityGift", label: "Community Gift", sourceEvent: "GiftBomb", template: "{user} gifted {amount} subscriptions to the community" },
+          { key: "raid", label: "Incoming Raid", sourceEvent: "Raid", template: "{user} raided with {amount} viewers" },
+          { key: "charityDonation", label: "Charity Donation", sourceEvent: "CharityDonation", template: "{user} donated {amount} to charity" }
+        ]
+      },
+      {
+        id: "youtube",
+        label: "YouTube",
+        badge: "YT",
+        color: "#CD201F",
+        supportsAvatar: true,
+        subscribeSource: "youTube",
+        aliases: ["YouTube", "Youtube", "youTube", "youtube"],
+        events: [
+          { key: "subscribed", label: "Subscribed", sourceEvent: "NewSubscriber", template: "{user} subscribed" },
+          { key: "jewelsGifted", label: "Jewels Gifted", sourceEvent: "JewelsGifted", template: "{user} gifted {amount} jewels" },
+          { key: "superChat", label: "Super Chat", sourceEvent: "SuperChat", template: "{user} sent a {amount} Super Chat" },
+          { key: "superSticker", label: "Super Sticker", sourceEvent: "SuperSticker", template: "{user} sent a {amount} Super Sticker" },
+          { key: "membershipGift", label: "Membership Gift", sourceEvent: "MembershipGift", template: "{user} gifted {amount} memberships" },
+          { key: "memberMilestone", label: "Member Milestone", sourceEvent: "MemberMileStone", template: "{user} hit a member milestone" },
+          { key: "newSponsor", label: "New Sponsor", sourceEvent: "NewSponsor", template: "{user} became a sponsor" }
+        ]
+      },
+      {
+        id: "kick",
+        label: "Kick",
+        badge: "K",
+        color: "#00E701",
+        supportsAvatar: true,
+        subscribeSource: "kick",
+        aliases: ["Kick", "kick"],
+        events: [
+          { key: "rewardRedemption", label: "Channel Reward Redemption", sourceEvent: "RewardRedemption", template: "{user} redeemed {title}" },
+          { key: "follow", label: "Follow", sourceEvent: "Follow", template: "{user} followed the channel" },
+          { key: "giftedKicks", label: "Gifted Kicks", sourceEvent: "sGifted", template: "{user} gifted {amount} Kicks" },
+          { key: "giftSubscription", label: "Gift Subscription", sourceEvent: "GiftSubscription", template: "{user} gifted a subscription to {recipient}" },
+          { key: "massGiftSubscription", label: "Mass Gift Subscriptions", sourceEvent: "MassGiftSubscription", template: "{user} gifted {amount} subscriptions" },
+          { key: "resubscription", label: "Resubscription", sourceEvent: "Resubscription", template: "{user} resubscribed for {months} months" },
+          { key: "subscription", label: "Subscription", sourceEvent: "Subscription", template: "{user} subscribed" }
+        ]
+      },
+      {
+        id: "fourthwall",
+        label: "Fourthwall",
+        badge: "FW",
+        color: "#FFFFFF",
+        supportsAvatar: false,
+        subscribeSource: "fourthwall",
+        aliases: ["Fourthwall", "fourthwall", "FourthWall"],
+        events: [
+          { key: "donation", label: "Donation", sourceEvent: "Donation", template: "{user} donated {amount}" },
+          { key: "giftPurchase", label: "Gift Purchase", sourceEvent: "GiftPurchase", template: "{user} purchased a gift" },
+          { key: "orderPlaced", label: "Order Placed", sourceEvent: "OrderPlaced", template: "{user} placed an order" },
+          { key: "subscriptionPurchased", label: "Subscription Purchased", sourceEvent: "SubscriptionPurchased", template: "{user} purchased a subscription" }
+        ]
+      },
+      {
+        id: "kofi",
+        label: "Ko-Fi",
+        badge: "KF",
+        color: "#29ABE0",
+        supportsAvatar: false,
+        subscribeSource: "kofi",
+        aliases: ["Kofi", "Ko-Fi", "Ko Fi", "kofi"],
+        events: [
+          { key: "commission", label: "Commission", sourceEvent: "Commission", template: "{user} commissioned {title}" },
+          { key: "donation", label: "Donation", sourceEvent: "Donation", template: "{user} donated {amount}" },
+          { key: "resubscription", label: "Resubscription", sourceEvent: "Resubscription", template: "{user} renewed a Ko-Fi subscription" },
+          { key: "shopOrder", label: "Shop Order", sourceEvent: "ShopOrder", template: "{user} placed a Ko-Fi shop order" },
+          { key: "subscription", label: "Subscription", sourceEvent: "Subscription", template: "{user} started a Ko-Fi subscription" }
+        ]
+      },
+      {
+        id: "pallygg",
+        label: "Pally.gg",
+        badge: "PG",
+        color: "#7869FF",
+        supportsAvatar: false,
+        subscribeSource: "pallygg",
+        aliases: ["Pallygg", "Pally.gg", "PallyGG", "pallygg"],
+        events: [
+          { key: "campaignTip", label: "Campaign Tip", sourceEvent: "CampaignTip", template: "{user} tipped {amount} to the campaign" }
+        ]
+      },
+      {
+        id: "patreon",
+        label: "Patreon",
+        badge: "PT",
+        color: "#FF424D",
+        supportsAvatar: false,
+        subscribeSource: "patreon",
+        aliases: ["Patreon", "patreon"],
+        events: [
+          { key: "followCreated", label: "Follow Created", sourceEvent: "FollowCreated", template: "{user} followed on Patreon" },
+          { key: "pledgeCreated", label: "Pledge Created", sourceEvent: "PledgeCreated", template: "{user} created a Patreon pledge" },
+          { key: "pledgeUpdated", label: "Pledge Updated", sourceEvent: "PledgeUpdated", template: "{user} updated a Patreon pledge" }
+        ]
+      },
+      {
+        id: "streamElements",
+        label: "StreamElements",
+        badge: "SE",
+        color: "#1000FF",
+        supportsAvatar: false,
+        subscribeSource: "streamElements",
+        aliases: ["StreamElements", "Stream Elements", "streamElements", "streamelements"],
+        events: [
+          { key: "tip", label: "Tip", sourceEvent: "Tip", template: "{user} tipped {amount}" }
+        ]
+      },
+      {
+        id: "streamlabs",
+        label: "Streamlabs",
+        badge: "SL",
+        color: "#80F5D2",
+        supportsAvatar: false,
+        subscribeSource: "streamlabs",
+        aliases: ["Streamlabs", "streamlabs"],
+        events: [
+          { key: "charityDonation", label: "Charity Donation", sourceEvent: "CharityDonation", template: "{user} donated {amount} to charity" },
+          { key: "donation", label: "Donation", sourceEvent: "Donation", template: "{user} donated {amount}" }
+        ]
+      },
+      {
+        id: "tipeeeStream",
+        label: "TipeeeStream",
+        badge: "TS",
+        color: "#FF8A00",
+        supportsAvatar: false,
+        subscribeSource: "tipeeeStream",
+        aliases: ["TipeeeStream", "Tipeee Stream", "tipeeeStream", "tipeeestream"],
+        events: [
+          { key: "donation", label: "Donation", sourceEvent: "Donation", template: "{user} donated {amount}" }
+        ]
+      },
+      {
+        id: "treatStream",
+        label: "TreatStream",
+        badge: "TR",
+        color: "#FF5A7A",
+        supportsAvatar: false,
+        subscribeSource: "treatStream",
+        aliases: ["TreatStream", "Treat Stream", "treatStream", "treatstream"],
+        events: [
+          { key: "treat", label: "Treat", sourceEvent: "Treat", template: "{user} sent a treat: {title}" }
+        ]
+      }
+    ];
+
+    const hashParams = new URLSearchParams(location.hash.replace(/^#/, ""));
+    const forcePreview = hashParams.get("preview") === "1";
+    const config = mergeConfig(createDefaultConfig(), decodeConfig(hashParams.get("config")) || {});
+    const queue = [];
+    const stage = document.getElementById("stage");
+    const statusBadge = document.getElementById("statusBadge");
+    let active = false;
+    let ws = null;
+    let reconnectTimer = null;
+    let reconnectAttempt = 0;
+    let previewTimer = null;
+    let availableEvents = null;
+    let subscribed = false;
+
+    applyConfig();
+
+    if (forcePreview) {
+      setStatus("Preview mode", "connected");
+      if (config.general.previewEnabled) startPreviewMode();
+    } else {
+      connectWebSocket();
+    }
+
+    window.addEventListener("message", event => {
+      const data = event.data || {};
+      if (data.type === "spn-alert-preview-random") enqueueAlert(makePreviewAlert());
+      if (data.type === "spn-alert-clear") clearQueue();
+      if (data.type === "spn-alert-test") enqueueAlert(makePreviewAlert(data.platformId, data.eventKey));
+    });
+
+    function createDefaultConfig() {
+      return {
+        v: VERSION,
+        connection: { ...DEFAULT_CONNECTION },
+        general: { ...DEFAULT_GENERAL },
+        platforms: Object.fromEntries(PLATFORM_DEFINITIONS.map(platform => [platform.id, {
+          enabled: true,
+          color: platform.color,
+          showBadge: true,
+          showAvatar: platform.supportsAvatar,
+          soundUrl: "",
+          volume: 70,
+          events: Object.fromEntries(platform.events.map(event => [event.key, {
+            enabled: true,
+            template: event.template
+          }]))
+        }]))
+      };
+    }
+
+    function decodeConfig(value) {
+      if (!value) return null;
+      try {
+        const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+        const padded = normalized.padEnd(normalized.length + (4 - normalized.length % 4) % 4, "=");
+        return JSON.parse(decodeURIComponent(escape(atob(padded))));
+      } catch (error) {
+        console.warn("Could not parse alert config.", error);
+        return null;
+      }
+    }
+
+    function mergeConfig(target, source) {
+      if (!source || typeof source !== "object") return target;
+      if (source.connection) Object.assign(target.connection, source.connection);
+      if (source.general) Object.assign(target.general, source.general);
+      if (source.platforms) {
+        for (const [platformId, platformSource] of Object.entries(source.platforms)) {
+          if (!target.platforms[platformId]) continue;
+          const targetPlatform = target.platforms[platformId];
+          Object.assign(targetPlatform, platformSource);
+          if (platformSource.events) {
+            targetPlatform.events = targetPlatform.events || {};
+            for (const [eventKey, eventSource] of Object.entries(platformSource.events)) {
+              targetPlatform.events[eventKey] = {
+                ...(targetPlatform.events[eventKey] || {}),
+                ...eventSource
+              };
+            }
+          }
+        }
+      }
+      return target;
+    }
+
+    function applyConfig() {
+      stage.className = `position-${config.general.position || "center"}`;
+      document.documentElement.style.setProperty("--scale", String((Number(config.general.scale) || 100) / 100));
+      document.documentElement.style.setProperty("--transition", `${Number(config.general.transitionMs) || 750}ms`);
+      statusBadge.classList.toggle("show", !!config.general.showConnectionStatus || forcePreview);
+    }
+
+    function connectWebSocket() {
+      clearTimeout(reconnectTimer);
+      const { host, port, endpoint } = config.connection;
+      const cleanEndpoint = String(endpoint || "/").startsWith("/") ? endpoint : `/${endpoint}`;
+      const url = `ws://${host || "127.0.0.1"}:${Number(port) || 8080}${cleanEndpoint || "/"}`;
+      setStatus(`Connecting to ${url}`, "");
+
+      try {
+        ws = new WebSocket(url);
+      } catch (error) {
+        setStatus(`WebSocket error: ${error.message}`, "error");
+        scheduleReconnect();
+        return;
+      }
+
+      ws.addEventListener("open", () => {
+        reconnectAttempt = 0;
+        subscribed = false;
+        setStatus("Connected. Waiting for hello...", "connected");
+      });
+
+      ws.addEventListener("message", async event => {
+        const packet = safeJsonParse(event.data);
+        if (!packet) return;
+
+        if (packet.request === "Hello") {
+          if (packet.authentication && config.connection.password) {
+            const auth = await createAuthentication(config.connection.password, packet.authentication.salt, packet.authentication.challenge);
+            sendRequest("Authenticate", { authentication: auth }, "spn-auth");
+            setStatus("Authenticating...", "connected");
+          } else {
+            requestAvailableEvents();
+          }
+          return;
+        }
+
+        if (packet.id === "spn-auth" && packet.status === "ok") {
+          requestAvailableEvents();
+          return;
+        }
+
+        if (packet.id === "spn-get-events" && packet.status === "ok") {
+          availableEvents = packet.events || null;
+          subscribeToEnabledEvents();
+          return;
+        }
+
+        if (packet.id === "spn-subscribe" && packet.status === "ok") {
+          subscribed = true;
+          setStatus("Subscribed to enabled alert events", "connected");
+          return;
+        }
+
+        if (packet.status === "error") {
+          setStatus(`Streamer.bot error: ${packet.error || packet.message || "Unknown error"}`, "error");
+          return;
+        }
+
+        if (packet.event) handleStreamerbotEvent(packet);
+      });
+
+      ws.addEventListener("close", () => {
+        setStatus("Disconnected from Streamer.bot", "error");
+        scheduleReconnect();
+      });
+
+      ws.addEventListener("error", () => {
+        setStatus("WebSocket connection error", "error");
+      });
+    }
+
+    function scheduleReconnect() {
+      if (forcePreview) return;
+      clearTimeout(reconnectTimer);
+      const delay = Math.min(30000, 1500 * Math.max(1, ++reconnectAttempt));
+      reconnectTimer = setTimeout(connectWebSocket, delay);
+    }
+
+    function requestAvailableEvents() {
+      sendRequest("GetEvents", {}, "spn-get-events");
+      setTimeout(() => {
+        if (!subscribed) subscribeToEnabledEvents();
+      }, 1500);
+    }
+
+    function subscribeToEnabledEvents() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      const events = buildSubscriptionEvents();
+      if (!Object.keys(events).length) {
+        setStatus("No alert events are enabled", "error");
+        return;
+      }
+      ws.send(JSON.stringify({ request: "Subscribe", id: "spn-subscribe", events }));
+      setStatus("Subscribing to alert events...", "connected");
+    }
+
+    function buildSubscriptionEvents() {
+      const output = {};
+      PLATFORM_DEFINITIONS.forEach(platformDef => {
+        const platformState = config.platforms[platformDef.id];
+        if (!platformState?.enabled) return;
+        const source = resolveSubscriptionSource(platformDef);
+        const eventNames = new Set();
+        platformDef.events.forEach(eventDef => {
+          const eventState = platformState.events?.[eventDef.key];
+          if (eventState?.enabled) eventNames.add(eventDef.sourceEvent);
+        });
+        if (eventNames.size) output[source] = [...eventNames];
+      });
+      return output;
+    }
+
+    function resolveSubscriptionSource(platformDef) {
+      if (!availableEvents) return platformDef.subscribeSource;
+      const keys = Object.keys(availableEvents);
+      const aliases = [platformDef.subscribeSource, platformDef.id, platformDef.label, ...(platformDef.aliases || [])];
+      const normalizedAliases = aliases.map(normalizeToken);
+      return keys.find(key => normalizedAliases.includes(normalizeToken(key))) || platformDef.subscribeSource;
+    }
+
+    function sendRequest(request, payload = {}, id = `spn-${Date.now()}`) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      ws.send(JSON.stringify({ request, id, ...payload }));
+    }
+
+    async function createAuthentication(password, salt, challenge) {
+      const secret = await sha256Base64(password + salt);
+      return sha256Base64(secret + challenge);
+    }
+
+    async function sha256Base64(value) {
+      const bytes = new TextEncoder().encode(value);
+      const hash = await crypto.subtle.digest("SHA-256", bytes);
+      return btoa(String.fromCharCode(...new Uint8Array(hash)));
+    }
+
+    function handleStreamerbotEvent(packet) {
+      const source = packet.event?.source || packet.source;
+      const type = packet.event?.type || packet.type;
+      const platformDef = findPlatformBySource(source);
+      if (!platformDef) return;
+
+      const platformState = config.platforms[platformDef.id];
+      if (!platformState?.enabled) return;
+
+      const eventKey = resolveEventKey(platformDef, type, packet.data || {});
+      const eventDef = platformDef.events.find(event => event.key === eventKey);
+      if (!eventDef) return;
+
+      const eventState = platformState.events?.[eventDef.key];
+      if (!eventState?.enabled) return;
+
+      enqueueAlert(buildAlert(platformDef, eventDef, packet.data || {}));
+    }
+
+    function findPlatformBySource(source) {
+      const normalized = normalizeToken(source || "");
+      return PLATFORM_DEFINITIONS.find(platform => [platform.id, platform.label, platform.subscribeSource, ...(platform.aliases || [])].map(normalizeToken).includes(normalized));
+    }
+
+    function resolveEventKey(platformDef, type, data) {
+      if (platformDef.id === "twitch" && type === "Sub") {
+        const primeText = String(pick(data, ["isPrime", "prime", "subType", "subscriptionType", "tier", "subTier", "planName"]) || "").toLowerCase();
+        if (primeText === "true" || primeText.includes("prime")) return "primeSub";
+        return "newSub";
+      }
+      return platformDef.events.find(event => event.sourceEvent === type)?.key;
+    }
+
+    function buildAlert(platformDef, eventDef, data) {
+      const platformState = config.platforms[platformDef.id];
+      const eventState = platformState.events?.[eventDef.key] || {};
+      const values = buildValues(platformDef, eventDef, data);
+      const headline = formatTemplate(eventState.template || eventDef.template, values) || eventDef.label;
+      const detail = makeDetail(eventDef, values);
+
+      return {
+        platformId: platformDef.id,
+        platformLabel: platformDef.label,
+        badge: platformDef.badge,
+        color: platformState.color || platformDef.color,
+        eventLabel: eventDef.label,
+        headline,
+        detail,
+        avatar: platformDef.supportsAvatar ? values.avatar : "",
+        showAvatar: !!(platformDef.supportsAvatar && platformState.showAvatar && values.avatar),
+        showBadge: !!(config.general.showBadge && platformState.showBadge),
+        soundUrl: platformState.soundUrl || config.general.soundUrl,
+        volume: Number.isFinite(Number(platformState.volume)) ? Number(platformState.volume) : Number(config.general.volume || 70)
+      };
+    }
+
+    function buildValues(platformDef, eventDef, data) {
+      const user = pick(data, [
+        "user.displayName", "user.name", "user.userName", "user.username", "user.login", "user",
+        "sender.displayName", "sender.name", "from.displayName", "from.name",
+        "donor.name", "supporter.name", "member.name", "patron.full_name",
+        "displayName", "userName", "username", "login", "name", "authorName", "viewerName"
+      ]);
+      const recipient = pick(data, [
+        "recipient.displayName", "recipient.name", "recipient.username", "giftRecipient.displayName", "giftRecipient.name",
+        "giftRecipientName", "recipientName", "to.name", "to.displayName"
+      ]);
+      const title = pick(data, [
+        "reward.title", "reward.name", "rewardTitle", "rewardName", "title", "name", "item.name", "itemName",
+        "product.name", "productName", "tier.name", "tierName", "campaign.name", "campaignName", "type"
+      ]);
+      const amount = extractAmount(eventDef, data);
+      const tier = pick(data, ["tier", "subTier", "subscriptionTier", "membershipLevel", "levelName", "plan", "planName"]) || "Tier 1";
+      const months = pick(data, ["months", "cumulativeMonths", "streakMonths", "duration", "totalMonths"]) || "1";
+      const message = pick(data, ["message", "comment", "note", "text", "userInput", "input", "superChat.message", "data.message"]);
+      const avatar = pick(data, [
+        "user.profileImageUrl", "user.profileImage", "user.profilePicture", "user.profileUrl", "user.avatar", "user.avatarUrl",
+        "author.profileImageUrl", "author.avatar", "profileImageUrl", "profileImage", "profilePicture", "avatar", "avatarUrl",
+        "sender.profileImageUrl", "sender.avatar"
+      ]);
+
+      return {
+        user: stringifyValue(user) || "Someone",
+        recipient: stringifyValue(recipient) || "the community",
+        title: stringifyValue(title) || eventDef.label,
+        amount: stringifyValue(amount) || "",
+        tier: stringifyValue(tier),
+        months: stringifyValue(months),
+        message: stringifyValue(message),
+        avatar: stringifyValue(avatar)
+      };
+    }
+
+    function extractAmount(eventDef, data) {
+      if (eventDef.sourceEvent === "Cheer") return pick(data, ["bits", "amount", "totalBits"]);
+      if (["Raid"].includes(eventDef.sourceEvent)) return pick(data, ["viewers", "viewerCount", "raiders", "amount", "count"]);
+      if (["GiftBomb", "MassGiftSubscription", "MembershipGift", "JewelsGifted", "sGifted"].includes(eventDef.sourceEvent)) return pick(data, ["count", "amount", "quantity", "total", "giftCount", "numberOfGifts"]);
+      if (["RewardRedemption"].includes(eventDef.sourceEvent)) return pick(data, ["reward.cost", "cost", "points", "amount"]);
+
+      const formatted = pick(data, ["formattedAmount", "amountFormatted", "displayAmount", "amountDisplay", "formatted", "valueFormatted"]);
+      if (formatted) return formatted;
+
+      const amount = pick(data, ["amount", "value", "total", "price", "donation.amount", "tip.amount", "pledge.amount"]);
+      const currency = pick(data, ["currency", "currencyCode", "currency_code", "donation.currency", "tip.currency"]);
+      return formatCurrency(amount, currency);
+    }
+
+    function formatCurrency(amount, currency) {
+      if (amount === undefined || amount === null || amount === "") return "";
+      const number = Number(String(amount).replace(/[^0-9.-]/g, ""));
+      const currencyText = stringifyValue(currency);
+      if (Number.isFinite(number) && currencyText && /^[A-Z]{3}$/i.test(currencyText)) {
+        try {
+          return new Intl.NumberFormat(undefined, { style: "currency", currency: currencyText.toUpperCase() }).format(number);
+        } catch {}
+      }
+      if (currencyText && !String(amount).includes(currencyText)) return `${currencyText} ${amount}`;
+      return String(amount);
+    }
+
+    function makeDetail(eventDef, values) {
+      if (values.message) return values.message;
+      const parts = [];
+      if (values.amount) parts.push(values.amount);
+      if (values.title && values.title !== eventDef.label) parts.push(values.title);
+      return [...new Set(parts)].join(" · ");
+    }
+
+    function formatTemplate(template, values) {
+      return String(template || "")
+        .replace(/\{(user|recipient|title|amount|tier|months|message)\}/g, (_, key) => values[key] || "")
+        .replace(/\s+/g, " ")
+        .replace(/\s+([,.:;!?])/g, "$1")
+        .trim();
+    }
+
+    function enqueueAlert(alert) {
+      if (!alert) return;
+      queue.push(alert);
+      if (!active) processQueue();
+    }
+
+    function clearQueue() {
+      queue.length = 0;
+      stage.innerHTML = "";
+      active = false;
+      setStatus(forcePreview ? "Preview queue cleared" : "Alert queue cleared", "connected");
+    }
+
+    async function processQueue() {
+      if (!queue.length) {
+        active = false;
+        return;
+      }
+      active = true;
+      const alert = queue.shift();
+      renderAlert(alert);
+      playSound(alert);
+
+      const duration = Number(config.general.durationMs) || 8000;
+      const transition = Number(config.general.transitionMs) || 750;
+      await wait(duration);
+      const card = stage.querySelector(".alert-card");
+      card?.classList.remove("show");
+      await wait(Math.max(transition, 120));
+      stage.innerHTML = "";
+      await wait(Math.max(transition, 0));
+      processQueue();
+    }
+
+    function renderAlert(alert) {
+      stage.innerHTML = "";
+      stage.classList.toggle("empty-media", !alert.showAvatar && !alert.showBadge);
+      const card = document.createElement("article");
+      card.className = "alert-card";
+      card.style.setProperty("--alert-color", alert.color || "#7869ff");
+
+      const media = document.createElement("div");
+      media.className = "media";
+
+      if (alert.showAvatar) {
+        const img = document.createElement("img");
+        img.className = "avatar";
+        img.src = alert.avatar;
+        img.alt = `${alert.platformLabel} profile image`;
+        img.referrerPolicy = "no-referrer";
+        img.onerror = () => img.replaceWith(makeBadge(alert));
+        media.appendChild(img);
+        if (alert.showBadge) {
+          const chip = document.createElement("div");
+          chip.className = "platform-chip";
+          chip.textContent = alert.badge;
+          media.appendChild(chip);
+        }
+      } else if (alert.showBadge) {
+        media.appendChild(makeBadge(alert));
+      }
+
+      const content = document.createElement("div");
+      content.className = "content";
+      content.innerHTML = `
+        <div class="meta"><span>${escapeHtml(alert.platformLabel)}</span><span>${escapeHtml(alert.eventLabel)}</span></div>
+        <div class="headline">${escapeHtml(alert.headline)}</div>
+        ${alert.detail ? `<div class="detail">${escapeHtml(alert.detail)}</div>` : ""}
+      `;
+
+      if (alert.showAvatar || alert.showBadge) card.append(media, content);
+      else card.append(content);
+      stage.appendChild(card);
+      requestAnimationFrame(() => card.classList.add("show"));
+    }
+
+    function makeBadge(alert) {
+      const badge = document.createElement("div");
+      badge.className = "platform-badge";
+      badge.textContent = alert.badge || alert.platformLabel.slice(0, 2);
+      return badge;
+    }
+
+    function playSound(alert) {
+      if (!alert.soundUrl) return;
+      try {
+        const audio = new Audio(alert.soundUrl);
+        audio.volume = Math.max(0, Math.min(1, Number(alert.volume || config.general.volume || 70) / 100));
+        audio.play().catch(() => {});
+      } catch {}
+    }
+
+    function startPreviewMode() {
+      clearInterval(previewTimer);
+      const frequency = Math.max(2000, Number(config.general.previewFrequencyMs) || 7000);
+      setTimeout(() => enqueueAlert(makePreviewAlert()), 500);
+      previewTimer = setInterval(() => enqueueAlert(makePreviewAlert()), frequency);
+    }
+
+    function makePreviewAlert(platformId = null, eventKey = null) {
+      const enabledPlatformDefs = PLATFORM_DEFINITIONS.filter(platform => {
+        const platformState = config.platforms[platform.id];
+        return platformState?.enabled && (!platformId || platform.id === platformId);
+      });
+      const platformDef = sample(enabledPlatformDefs) || PLATFORM_DEFINITIONS[0];
+      const platformState = config.platforms[platformDef.id];
+      const enabledEvents = platformDef.events.filter(event => {
+        const eventState = platformState.events?.[event.key];
+        return eventState?.enabled && (!eventKey || event.key === eventKey);
+      });
+      const eventDef = sample(enabledEvents) || platformDef.events[0];
+      const data = makeFakeData(platformDef, eventDef);
+      return buildAlert(platformDef, eventDef, data);
+    }
+
+    function makeFakeData(platformDef, eventDef) {
+      const names = ["PickleFan42", "AvocadoPilot", "StreamGoblin", "PixelPanda", "RaidCaptain", "LaglessLarry", "ModModeMia"];
+      const user = sample(names);
+      const avatarAllowed = platformDef.supportsAvatar;
+      const base = {
+        username: user,
+        displayName: user,
+        user: {
+          displayName: user,
+          name: user,
+          profileImageUrl: avatarAllowed ? `https://api.dicebear.com/9.x/bottts-neutral/svg?seed=${encodeURIComponent(user)}` : ""
+        },
+        recipientName: sample(names.filter(name => name !== user)),
+        message: sample(["Thanks for the stream!", "This alert is looking clean.", "One more round.", "Hydrate check.", ""]),
+        currency: "USD",
+        amount: sample([5, 10, 15, 25, 50])
+      };
+
+      const extra = {
+        Follow: {},
+        RewardRedemption: { reward: { title: sample(["Hydrate", "No Vehicles", "Posture Check", "Choose the Drop"]), cost: sample([500, 1000, 2500, 5000]) } },
+        Cheer: { bits: sample([100, 250, 500, 1000]) },
+        Sub: { tier: sample(["Tier 1", "Tier 2", "Prime"]), isPrime: eventDef.key === "primeSub" },
+        ReSub: { months: sample([2, 6, 12, 24]) },
+        GiftSub: { recipient: { displayName: base.recipientName } },
+        GiftBomb: { count: sample([5, 10, 20]) },
+        Raid: { viewers: sample([8, 17, 34, 72]) },
+        CharityDonation: { amount: sample([10, 25, 50]), currency: "USD" },
+        NewSubscriber: {},
+        JewelsGifted: { amount: sample([50, 100, 250]) },
+        SuperChat: { amount: sample([4.99, 9.99, 19.99]), currency: "USD" },
+        SuperSticker: { amount: sample([1.99, 4.99, 9.99]), currency: "USD" },
+        MembershipGift: { count: sample([1, 5, 10]) },
+        MemberMileStone: { months: sample([2, 6, 12]) },
+        NewSponsor: {},
+        GiftSubscription: { recipient: { displayName: base.recipientName } },
+        MassGiftSubscription: { count: sample([5, 10, 25]) },
+        Resubscription: { months: sample([2, 5, 11]) },
+        Subscription: {},
+        Donation: { amount: sample([5, 10, 20]), currency: "USD" },
+        GiftPurchase: { item: { name: "Gift Item" } },
+        OrderPlaced: { productName: sample(["Sticker Pack", "Creator Tee", "Mug"]), amount: sample([18, 24, 32]), currency: "USD" },
+        SubscriptionPurchased: { tierName: sample(["Monthly Supporter", "VIP Supporter"]) },
+        Commission: { title: sample(["Custom Graphic", "Emote Pack", "Overlay Edit"]) },
+        ShopOrder: { productName: sample(["Ko-Fi Print", "Digital Download"]) },
+        CampaignTip: { amount: sample([7, 14, 28]), currency: "USD", campaignName: "Community Goal" },
+        FollowCreated: {},
+        PledgeCreated: { amount: sample([3, 5, 10]), currency: "USD" },
+        PledgeUpdated: { amount: sample([5, 12, 20]), currency: "USD" },
+        Tip: { amount: sample([3, 7, 11]), currency: "USD" },
+        Treat: { type: sample(["Pizza", "Coffee", "Snack"]), message: "Treat incoming." },
+        sGifted: { amount: sample([100, 250, 500]) }
+      };
+
+      return { ...base, ...(extra[eventDef.sourceEvent] || {}) };
+    }
+
+    function pick(obj, paths) {
+      for (const path of paths) {
+        const value = getPath(obj, path);
+        if (value !== undefined && value !== null && value !== "") return value;
+      }
+      return undefined;
+    }
+
+    function getPath(obj, path) {
+      if (!obj || !path) return undefined;
+      return String(path).split(".").reduce((current, key) => {
+        if (current === undefined || current === null) return undefined;
+        return current[key];
+      }, obj);
+    }
+
+    function stringifyValue(value) {
+      if (value === undefined || value === null) return "";
+      if (typeof value === "object") {
+        return value.displayName || value.userName || value.username || value.name || value.title || value.label || "";
+      }
+      return String(value);
+    }
+
+    function sample(array) {
+      if (!array || !array.length) return undefined;
+      return array[Math.floor(Math.random() * array.length)];
+    }
+
+    function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+    function safeJsonParse(value) {
+      try { return JSON.parse(value); }
+      catch { return null; }
+    }
+
+    function normalizeToken(value) {
+      return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    }
+
+    function setStatus(message, type = "") {
+      statusBadge.textContent = message;
+      statusBadge.classList.toggle("connected", type === "connected");
+      statusBadge.classList.toggle("error", type === "error");
+      statusBadge.classList.toggle("show", !!config.general.showConnectionStatus || forcePreview);
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>
