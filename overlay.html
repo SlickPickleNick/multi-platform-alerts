@@ -6,11 +6,13 @@
   <title>SlickPickleNick Multiplatform Alerts</title>
   <style>
     :root {
-      --alert-width: 750px;
-      --alert-height: 300px;
-      --radius: 34px;
-      --image-size: 118px;
-      --username-size: 44px;
+      --alert-width: 740px;
+      --alert-height: 190px;
+      --radius: 16px;
+      --padding: 20px;
+      --content-gap: 22px;
+      --image-size: 150px;
+      --username-size: 42px;
       --action-size: 24px;
       --scale: 1;
       --transition-ms: 650ms;
@@ -21,6 +23,8 @@
       --card-opacity: .92;
       --blur: 18px;
       --font-family: Inter, Arial, Helvetica, sans-serif;
+      --username-min-size: 24px;
+      --action-min-size: 15px;
     }
     * { box-sizing: border-box; }
     html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent; font-family: var(--font-family); }
@@ -52,11 +56,11 @@
       width: var(--alert-width);
       height: var(--alert-height);
       border-radius: var(--radius);
-      padding: 38px 46px;
+      padding: var(--padding);
       display: grid;
-      grid-template-columns: var(--image-size) 1fr;
+      grid-template-columns: var(--image-size) minmax(0, 1fr);
       align-items: center;
-      gap: 36px;
+      gap: var(--content-gap);
       overflow: hidden;
       position: absolute;
       inset: 0;
@@ -78,7 +82,7 @@
     .media-wrap {
       width: var(--image-size);
       height: var(--image-size);
-      border-radius: 28px;
+      border-radius: var(--radius);
       overflow: hidden;
       display: grid;
       place-items: center;
@@ -87,33 +91,36 @@
       box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 18px 42px rgba(0,0,0,.24);
     }
     .media-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .media-wrap.logo img { object-fit: contain; padding: 16px; }
-    .text-wrap { min-width: 0; }
+    .media-wrap.logo img { object-fit: contain; padding: 18px; }
+    .media-fallback { display: none; width: 100%; height: 100%; align-items: center; justify-content: center; color: #fff; font-weight: 950; font-size: 42px; letter-spacing: -1px; text-transform: uppercase; background: rgba(255,255,255,.09); }
+    .media-wrap.failed img { display: none; }
+    .media-wrap.failed .media-fallback { display: flex; }
+    .text-wrap { min-width: 0; height: var(--image-size); display: grid; align-content: center; gap: 10px; overflow: hidden; }
     .username {
       color: #fff;
       font-size: var(--username-size);
-      line-height: .96;
+      line-height: .98;
       font-weight: 950;
-      letter-spacing: -2.1px;
+      letter-spacing: -1.7px;
       text-transform: uppercase;
       text-shadow: 0 4px 28px rgba(0,0,0,.35);
       overflow: hidden;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
+      white-space: nowrap;
+      text-overflow: clip;
     }
     .action {
-      margin-top: 18px;
-      color: rgba(255,255,255,.88);
+      margin-top: 0;
+      color: rgba(255,255,255,.9);
       font-size: var(--action-size);
-      line-height: 1.2;
-      font-weight: 750;
-      letter-spacing: -.45px;
+      line-height: 1.18;
+      font-weight: 800;
+      letter-spacing: -.35px;
       text-shadow: 0 3px 16px rgba(0,0,0,.32);
       overflow: hidden;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
+      white-space: normal;
     }
     .status {
       position: fixed;
@@ -135,7 +142,7 @@
   <div id="stage" class="stage center">
     <div class="alert-shell" aria-live="polite" aria-atomic="true">
       <article id="alertCard" class="alert-card" role="status">
-        <div id="mediaWrap" class="media-wrap logo"><img id="media" alt="Alert source"></div>
+        <div id="mediaWrap" class="media-wrap logo"><img id="media" alt="Alert source"><span id="mediaFallback" class="media-fallback">?</span></div>
         <div class="text-wrap">
           <div id="username" class="username">SLICKPICKLENICK</div>
           <div id="action" class="action">just followed!</div>
@@ -147,10 +154,10 @@
   <audio id="alertAudio" preload="auto"></audio>
 <script>
 
-const SPN_VERSION = "v0.2.0";
+const SPN_VERSION = "v0.2.1";
 const PLATFORM_DEFS = {
   twitch: {
-    label: "Twitch", source: "twitch", aliases: ["twitch"], profileEligible: true, defaultColor: "#9146FF", logo: "assets/logos/twitch.svg",
+    label: "Twitch", source: "twitch", aliases: ["twitch"], profileEligible: true, defaultColor: "#9146FF", logo: "assets/logos/twitch",
     events: {
       Follow: { label: "Follow", defaultEnabled: true, template: "just followed!" },
       RewardRedemption: { label: "Channel Point Redemption", defaultEnabled: true, template: "redeemed {reward} for {cost} points!" },
@@ -166,7 +173,7 @@ const PLATFORM_DEFS = {
     }
   },
   youtube: {
-    label: "YouTube", source: "youTube", aliases: ["youtube", "youTube", "YouTube"], profileEligible: true, defaultColor: "#CD201F", logo: "assets/logos/youtube.svg",
+    label: "YouTube", source: "youTube", aliases: ["youtube", "youTube", "YouTube"], profileEligible: true, defaultColor: "#CD201F", logo: "assets/logos/youtube",
     events: {
       NewSubscriber: { label: "Subscribed", defaultEnabled: true, template: "just subscribed!" },
       JewelsGifted: { label: "Jewels Gifted", defaultEnabled: true, template: "gifted {amount} jewels!" },
@@ -179,11 +186,11 @@ const PLATFORM_DEFS = {
     }
   },
   kick: {
-    label: "Kick", source: "kick", aliases: ["kick", "Kick"], profileEligible: true, defaultColor: "#00E701", logo: "assets/logos/kick.svg",
+    label: "Kick", source: "kick", aliases: ["kick", "Kick"], profileEligible: true, defaultColor: "#00E701", logo: "assets/logos/kick",
     events: {
       RewardRedemption: { label: "Channel Reward Redemption", defaultEnabled: true, template: "redeemed {reward} for {cost} points!" },
       Follow: { label: "Follow", defaultEnabled: true, template: "just followed!" },
-      sGifted: { label: "Gifted Kicks", defaultEnabled: true, template: "gifted {count} kicks!" },
+      Gifted: { label: "Gifted Kicks", defaultEnabled: true, template: "gifted {count} kicks!" },
       GiftSubscription: { label: "Gift Subscription", defaultEnabled: true, template: "gifted a subscription to {recipient}!" },
       MassGiftSubscription: { label: "Mass Gift Subscriptions", defaultEnabled: true, template: "gifted {count} subscriptions to the community!" },
       Resubscription: { label: "Resubscription", defaultEnabled: true, template: "just resubscribed for {months} months!" },
@@ -191,7 +198,7 @@ const PLATFORM_DEFS = {
     }
   },
   fourthwall: {
-    label: "Fourthwall", source: "fourthwall", aliases: ["fourthwall", "Fourthwall"], profileEligible: false, defaultColor: "#FFFFFF", logo: "assets/logos/fourthwall.svg",
+    label: "Fourthwall", source: "fourthwall", aliases: ["fourthwall", "Fourthwall"], profileEligible: false, defaultColor: "#FFFFFF", logo: "assets/logos/fourthwall",
     events: {
       Donation: { label: "Donation", defaultEnabled: true, template: "sent a {amount} donation!" },
       GiftPurchase: { label: "Gift Purchase", defaultEnabled: true, template: "sent a gift purchase!" },
@@ -200,7 +207,7 @@ const PLATFORM_DEFS = {
     }
   },
   kofi: {
-    label: "Ko-Fi", source: "kofi", aliases: ["kofi", "koFi", "Ko-Fi", "KoFi"], profileEligible: false, defaultColor: "#29ABE0", logo: "assets/logos/kofi.svg",
+    label: "Ko-Fi", source: "kofi", aliases: ["kofi", "koFi", "Ko-Fi", "KoFi"], profileEligible: false, defaultColor: "#29ABE0", logo: "assets/logos/kofi",
     events: {
       Commission: { label: "Commission", defaultEnabled: true, template: "placed a commission!" },
       Donation: { label: "Donation", defaultEnabled: true, template: "sent a {amount} donation!" },
@@ -210,11 +217,11 @@ const PLATFORM_DEFS = {
     }
   },
   pallygg: {
-    label: "Pally.gg", source: "pallygg", aliases: ["pallygg", "pally.gg", "Pally.gg"], profileEligible: false, defaultColor: "#7765FF", logo: "assets/logos/pallygg.svg",
+    label: "Pally.gg", source: "pallygg", aliases: ["pallygg", "pally.gg", "Pally.gg"], profileEligible: false, defaultColor: "#7765FF", logo: "assets/logos/pallygg",
     events: { CampaignTip: { label: "Campaign Tip", defaultEnabled: true, template: "sent a {amount} campaign tip!" } }
   },
   patreon: {
-    label: "Patreon", source: "patreon", aliases: ["patreon", "Patreon"], profileEligible: false, defaultColor: "#FF424D", logo: "assets/logos/patreon.svg",
+    label: "Patreon", source: "patreon", aliases: ["patreon", "Patreon"], profileEligible: false, defaultColor: "#FF424D", logo: "assets/logos/patreon",
     events: {
       FollowCreated: { label: "Follow Created", defaultEnabled: true, template: "followed on Patreon!" },
       PledgeCreated: { label: "Pledge Created", defaultEnabled: true, template: "created a pledge!" },
@@ -222,22 +229,22 @@ const PLATFORM_DEFS = {
     }
   },
   streamelements: {
-    label: "StreamElements", source: "streamElements", aliases: ["streamElements", "streamelements", "StreamElements"], profileEligible: false, defaultColor: "#1000FF", logo: "assets/logos/streamelements.svg",
+    label: "StreamElements", source: "streamElements", aliases: ["streamElements", "streamelements", "StreamElements"], profileEligible: false, defaultColor: "#1000FF", logo: "assets/logos/streamelements",
     events: { Tip: { label: "Tip", defaultEnabled: true, template: "sent a {amount} tip!" } }
   },
   streamlabs: {
-    label: "Streamlabs", source: "streamlabs", aliases: ["streamlabs", "Streamlabs"], profileEligible: false, defaultColor: "#80F5D2", logo: "assets/logos/streamlabs.svg",
+    label: "Streamlabs", source: "streamlabs", aliases: ["streamlabs", "Streamlabs"], profileEligible: false, defaultColor: "#80F5D2", logo: "assets/logos/streamlabs",
     events: {
       CharityDonation: { label: "Charity Donation", defaultEnabled: true, template: "sent a {amount} charity donation!" },
       Donation: { label: "Donation", defaultEnabled: true, template: "sent a {amount} donation!" }
     }
   },
   tipeeestream: {
-    label: "TipeeeStream", source: "tipeeeStream", aliases: ["tipeeeStream", "tipeeestream", "TipeeeStream"], profileEligible: false, defaultColor: "#FF7A00", logo: "assets/logos/tipeeestream.svg",
+    label: "TipeeeStream", source: "tipeeeStream", aliases: ["tipeeeStream", "tipeeestream", "TipeeeStream"], profileEligible: false, defaultColor: "#FF7A00", logo: "assets/logos/tipeeestream",
     events: { Donation: { label: "Donation", defaultEnabled: true, template: "sent a {amount} donation!" } }
   },
   treatstream: {
-    label: "TreatStream", source: "treatStream", aliases: ["treatStream", "treatstream", "TreatStream"], profileEligible: false, defaultColor: "#FF4FA3", logo: "assets/logos/treatstream.svg",
+    label: "TreatStream", source: "treatStream", aliases: ["treatStream", "treatstream", "TreatStream"], profileEligible: false, defaultColor: "#FF4FA3", logo: "assets/logos/treatstream",
     events: { Treat: { label: "Treat", defaultEnabled: true, template: "sent a treat!" } }
   }
 };
@@ -254,11 +261,13 @@ function defaultConfig(){
       betweenMs: 500,
       position: "center",
       scale: 100,
-      width: 750,
-      height: 300,
-      radius: 34,
-      imageSize: 118,
-      usernameSize: 44,
+      width: 740,
+      height: 190,
+      radius: 16,
+      padding: 20,
+      contentGap: 22,
+      imageSize: 150,
+      usernameSize: 42,
       actionSize: 24,
       uppercaseUsername: true,
       fontFamily: "Inter, Arial, Helvetica, sans-serif",
@@ -439,6 +448,7 @@ const stage = document.getElementById('stage');
 const card = document.getElementById('alertCard');
 const mediaWrap = document.getElementById('mediaWrap');
 const media = document.getElementById('media');
+const mediaFallback = document.getElementById('mediaFallback');
 const usernameEl = document.getElementById('username');
 const actionEl = document.getElementById('action');
 const statusEl = document.getElementById('status');
@@ -453,11 +463,13 @@ function setStatus(text){ statusEl.textContent = text; }
 function applySettings(){
   const g = config.general;
   const root = document.documentElement.style;
-  root.setProperty('--alert-width', `${Number(g.width) || 750}px`);
-  root.setProperty('--alert-height', `${Number(g.height) || 300}px`);
-  root.setProperty('--radius', `${Number(g.radius) || 34}px`);
-  root.setProperty('--image-size', `${Number(g.imageSize) || 118}px`);
-  root.setProperty('--username-size', `${Number(g.usernameSize) || 44}px`);
+  root.setProperty('--alert-width', `${Number(g.width) || 740}px`);
+  root.setProperty('--alert-height', `${Number(g.height) || 190}px`);
+  root.setProperty('--radius', `${Number(g.radius) || 16}px`);
+  root.setProperty('--padding', `${Number(g.padding) || 20}px`);
+  root.setProperty('--content-gap', `${Number(g.contentGap) || 22}px`);
+  root.setProperty('--image-size', `${Number(g.imageSize) || 150}px`);
+  root.setProperty('--username-size', `${Number(g.usernameSize) || 42}px`);
   root.setProperty('--action-size', `${Number(g.actionSize) || 24}px`);
   root.setProperty('--scale', `${(Number(g.scale) || 100) / 100}`);
   root.setProperty('--transition-ms', `${Number(g.transitionMs) || 650}ms`);
@@ -519,6 +531,76 @@ function onSocketMessage(message){
   const alert = normalizeAlert(platformKey, eventType, packet.data || {});
   enqueue(alert);
 }
+
+function hasKnownImageExtension(path){ return /\.(svg|png|webp|jpg|jpeg|gif|avif)(\?.*)?$/i.test(String(path || '')); }
+function stripImageExtension(path){ return String(path || '').replace(/\.(svg|png|webp|jpg|jpeg|gif|avif)(\?.*)?$/i, ''); }
+function logoCandidates(platformKey, configuredPath){
+  const def = PLATFORM_DEFS[platformKey] || {};
+  const extensions = ['svg','png','webp','jpg','jpeg','gif','avif'];
+  const names = Array.from(new Set([
+    platformKey,
+    String(def.label || '').toLowerCase().replace(/[^a-z0-9]/g,''),
+    String(def.label || '').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9.-]/g,''),
+    platformKey === 'kofi' ? 'ko-fi' : '',
+    platformKey === 'pallygg' ? 'pally.gg' : '',
+    platformKey === 'tipeeestream' ? 'tipeee-stream' : '',
+    platformKey === 'streamelements' ? 'stream-elements' : '',
+    platformKey === 'streamlabs' ? 'stream-labs' : '',
+    platformKey === 'treatstream' ? 'treat-stream' : ''
+  ].filter(Boolean)));
+  const candidates = [];
+  const configured = configuredPath || def.logo || `assets/logos/${platformKey}`;
+  if(configured){
+    candidates.push(configured);
+    if(!hasKnownImageExtension(configured)) extensions.forEach(ext => candidates.push(`${configured}.${ext}`));
+    else {
+      const base = stripImageExtension(configured);
+      extensions.forEach(ext => candidates.push(`${base}.${ext}`));
+    }
+  }
+  names.forEach(name => extensions.forEach(ext => candidates.push(`assets/logos/${name}.${ext}`)));
+  return Array.from(new Set(candidates));
+}
+function setImageFromCandidates(candidates, altText, fallbackText, isLogo){
+  const list = (candidates || []).filter(Boolean);
+  let index = 0;
+  mediaWrap.classList.toggle('logo', !!isLogo);
+  mediaWrap.classList.remove('failed');
+  mediaFallback.textContent = fallbackText || '?';
+  media.alt = altText || 'Alert image';
+  media.onerror = () => {
+    index += 1;
+    if(index < list.length) media.src = list[index];
+    else mediaWrap.classList.add('failed');
+  };
+  if(list.length) media.src = list[0];
+  else mediaWrap.classList.add('failed');
+}
+function fitTextElement(el, baseSize, minSize, maxHeight, allowWrap){
+  const base = Number(baseSize) || 24;
+  const min = Number(minSize) || 14;
+  el.style.fontSize = `${base}px`;
+  el.style.whiteSpace = allowWrap ? 'normal' : 'nowrap';
+  let size = base;
+  const allowedHeight = Math.max(12, Number(maxHeight) || el.parentElement.clientHeight || 80);
+  while(size > min && (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > allowedHeight + 1)){
+    size -= 1;
+    el.style.fontSize = `${size}px`;
+  }
+}
+function fitCurrentText(){
+  requestAnimationFrame(() => {
+    const g = config.general;
+    const wrap = usernameEl.parentElement;
+    actionEl.style.maxHeight = '';
+    fitTextElement(usernameEl, g.usernameSize, g.usernameMinSize || 24, Math.min(64, wrap.clientHeight), false);
+    const gap = 10;
+    const availableForAction = Math.max(34, wrap.clientHeight - usernameEl.offsetHeight - gap);
+    actionEl.style.maxHeight = `${availableForAction}px`;
+    fitTextElement(actionEl, g.actionSize, g.actionMinSize || 15, availableForAction, true);
+  });
+}
+
 function normalizeAlert(platformKey, eventType, data){
   const pconf = config.platforms[platformKey] || {};
   const def = PLATFORM_DEFS[platformKey];
@@ -533,6 +615,7 @@ function normalizeAlert(platformKey, eventType, data){
     color,
     image: profile || logo,
     imageIsLogo: !profile,
+    logoCandidates: logoCandidates(platformKey, logo),
     soundUrl: (config.general.soundMode === 'platform' && pconf.soundUrl) ? pconf.soundUrl : config.general.soundUrl,
     volume: (config.general.soundMode === 'platform' && pconf.soundUrl) ? Number(pconf.soundVolume ?? config.general.soundVolume) : Number(config.general.soundVolume),
     raw: data
@@ -552,15 +635,12 @@ function renderAlert(alert){
   setPlatformColor(alert.color);
   usernameEl.textContent = config.general.uppercaseUsername ? sanitizeText(alert.username, 'SOMEONE').toUpperCase() : sanitizeText(alert.username, 'Someone');
   actionEl.textContent = sanitizeText(alert.action, 'triggered an alert!');
-  mediaWrap.classList.toggle('logo', !!alert.imageIsLogo);
-  media.alt = alert.imageIsLogo ? `${PLATFORM_DEFS[alert.platformKey].label} logo` : `${alert.username} profile image`;
-  media.onerror = () => {
-    if(media.src.indexOf(PLATFORM_DEFS[alert.platformKey].logo) === -1) {
-      mediaWrap.classList.add('logo');
-      media.src = PLATFORM_DEFS[alert.platformKey].logo;
-    }
-  };
-  media.src = alert.image || PLATFORM_DEFS[alert.platformKey].logo;
+  if(alert.image && !alert.imageIsLogo) {
+    setImageFromCandidates([alert.image, ...alert.logoCandidates], `${alert.username} profile image`, PLATFORM_DEFS[alert.platformKey].label.slice(0,2), false);
+  } else {
+    setImageFromCandidates(alert.logoCandidates, `${PLATFORM_DEFS[alert.platformKey].label} logo`, PLATFORM_DEFS[alert.platformKey].label.slice(0,2), true);
+  }
+  fitCurrentText();
 }
 function playSound(alert){
   if(!config.general.soundEnabled || params.get('mute') === '1') return;
@@ -613,7 +693,7 @@ function triggerSample(platformKey, eventType){
 }
 window.addEventListener('message', (event) => {
   const msg = event.data || {};
-  if(msg.type === 'SPN_ALERT_CONFIG' && msg.config) { config = mergeConfig(msg.config); applySettings(); }
+  if(msg.type === 'SPN_ALERT_CONFIG' && msg.config) { config = mergeConfig(msg.config); applySettings(); fitCurrentText(); }
   if(msg.type === 'SPN_TEST_ALERT') triggerSample(msg.platformKey, msg.eventType);
   if(msg.type === 'SPN_CLEAR_QUEUE') { queue = []; }
 });

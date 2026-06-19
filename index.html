@@ -111,7 +111,7 @@
     <aside class="deck">
       <div class="deck-head">
         <h1>Control Deck</h1>
-        <div class="version">Multiplatform Alerts v0.2.0</div>
+        <div class="version">Multiplatform Alerts v0.2.1</div>
       </div>
       <div id="controls" class="controls"></div>
     </aside>
@@ -121,7 +121,7 @@
           <h2>Multiplatform Alerts</h2>
           <p>Default-ready OBS overlay with optional heavy customization. The public browser source can work without setup, while this dashboard generates a configured OBS URL.</p>
         </div>
-        <span class="pill">Fixed 750 × 300 alert box</span>
+        <span class="pill">Fixed 740 × 190 alert box</span>
       </section>
       <section class="preview-panel">
         <div class="btns">
@@ -141,16 +141,16 @@
           <button id="importSettings">Import JSON</button>
         </div>
         <div id="urlOutput" class="url-output"></div>
-        <p class="note">Place custom logos in <code>assets/logos/</code> and sounds in <code>assets/sounds/</code>, then reference their relative paths in the controls.</p>
+        <p class="note">Place custom logos in <code>assets/logos/</code>. The overlay supports SVG, PNG, WEBP, JPG, JPEG, GIF, and AVIF. You can enter either an exact file path or an extensionless base path such as <code>assets/logos/twitch</code>.</p>
       </section>
     </main>
   </div>
 <script>
 
-const SPN_VERSION = "v0.2.0";
+const SPN_VERSION = "v0.2.1";
 const PLATFORM_DEFS = {
   twitch: {
-    label: "Twitch", source: "twitch", aliases: ["twitch"], profileEligible: true, defaultColor: "#9146FF", logo: "assets/logos/twitch.svg",
+    label: "Twitch", source: "twitch", aliases: ["twitch"], profileEligible: true, defaultColor: "#9146FF", logo: "assets/logos/twitch",
     events: {
       Follow: { label: "Follow", defaultEnabled: true, template: "just followed!" },
       RewardRedemption: { label: "Channel Point Redemption", defaultEnabled: true, template: "redeemed {reward} for {cost} points!" },
@@ -166,7 +166,7 @@ const PLATFORM_DEFS = {
     }
   },
   youtube: {
-    label: "YouTube", source: "youTube", aliases: ["youtube", "youTube", "YouTube"], profileEligible: true, defaultColor: "#CD201F", logo: "assets/logos/youtube.svg",
+    label: "YouTube", source: "youTube", aliases: ["youtube", "youTube", "YouTube"], profileEligible: true, defaultColor: "#CD201F", logo: "assets/logos/youtube",
     events: {
       NewSubscriber: { label: "Subscribed", defaultEnabled: true, template: "just subscribed!" },
       JewelsGifted: { label: "Jewels Gifted", defaultEnabled: true, template: "gifted {amount} jewels!" },
@@ -179,11 +179,11 @@ const PLATFORM_DEFS = {
     }
   },
   kick: {
-    label: "Kick", source: "kick", aliases: ["kick", "Kick"], profileEligible: true, defaultColor: "#00E701", logo: "assets/logos/kick.svg",
+    label: "Kick", source: "kick", aliases: ["kick", "Kick"], profileEligible: true, defaultColor: "#00E701", logo: "assets/logos/kick",
     events: {
       RewardRedemption: { label: "Channel Reward Redemption", defaultEnabled: true, template: "redeemed {reward} for {cost} points!" },
       Follow: { label: "Follow", defaultEnabled: true, template: "just followed!" },
-      sGifted: { label: "Gifted Kicks", defaultEnabled: true, template: "gifted {count} kicks!" },
+      Gifted: { label: "Gifted Kicks", defaultEnabled: true, template: "gifted {count} kicks!" },
       GiftSubscription: { label: "Gift Subscription", defaultEnabled: true, template: "gifted a subscription to {recipient}!" },
       MassGiftSubscription: { label: "Mass Gift Subscriptions", defaultEnabled: true, template: "gifted {count} subscriptions to the community!" },
       Resubscription: { label: "Resubscription", defaultEnabled: true, template: "just resubscribed for {months} months!" },
@@ -191,7 +191,7 @@ const PLATFORM_DEFS = {
     }
   },
   fourthwall: {
-    label: "Fourthwall", source: "fourthwall", aliases: ["fourthwall", "Fourthwall"], profileEligible: false, defaultColor: "#FFFFFF", logo: "assets/logos/fourthwall.svg",
+    label: "Fourthwall", source: "fourthwall", aliases: ["fourthwall", "Fourthwall"], profileEligible: false, defaultColor: "#FFFFFF", logo: "assets/logos/fourthwall",
     events: {
       Donation: { label: "Donation", defaultEnabled: true, template: "sent a {amount} donation!" },
       GiftPurchase: { label: "Gift Purchase", defaultEnabled: true, template: "sent a gift purchase!" },
@@ -200,7 +200,7 @@ const PLATFORM_DEFS = {
     }
   },
   kofi: {
-    label: "Ko-Fi", source: "kofi", aliases: ["kofi", "koFi", "Ko-Fi", "KoFi"], profileEligible: false, defaultColor: "#29ABE0", logo: "assets/logos/kofi.svg",
+    label: "Ko-Fi", source: "kofi", aliases: ["kofi", "koFi", "Ko-Fi", "KoFi"], profileEligible: false, defaultColor: "#29ABE0", logo: "assets/logos/kofi",
     events: {
       Commission: { label: "Commission", defaultEnabled: true, template: "placed a commission!" },
       Donation: { label: "Donation", defaultEnabled: true, template: "sent a {amount} donation!" },
@@ -210,11 +210,11 @@ const PLATFORM_DEFS = {
     }
   },
   pallygg: {
-    label: "Pally.gg", source: "pallygg", aliases: ["pallygg", "pally.gg", "Pally.gg"], profileEligible: false, defaultColor: "#7765FF", logo: "assets/logos/pallygg.svg",
+    label: "Pally.gg", source: "pallygg", aliases: ["pallygg", "pally.gg", "Pally.gg"], profileEligible: false, defaultColor: "#7765FF", logo: "assets/logos/pallygg",
     events: { CampaignTip: { label: "Campaign Tip", defaultEnabled: true, template: "sent a {amount} campaign tip!" } }
   },
   patreon: {
-    label: "Patreon", source: "patreon", aliases: ["patreon", "Patreon"], profileEligible: false, defaultColor: "#FF424D", logo: "assets/logos/patreon.svg",
+    label: "Patreon", source: "patreon", aliases: ["patreon", "Patreon"], profileEligible: false, defaultColor: "#FF424D", logo: "assets/logos/patreon",
     events: {
       FollowCreated: { label: "Follow Created", defaultEnabled: true, template: "followed on Patreon!" },
       PledgeCreated: { label: "Pledge Created", defaultEnabled: true, template: "created a pledge!" },
@@ -222,22 +222,22 @@ const PLATFORM_DEFS = {
     }
   },
   streamelements: {
-    label: "StreamElements", source: "streamElements", aliases: ["streamElements", "streamelements", "StreamElements"], profileEligible: false, defaultColor: "#1000FF", logo: "assets/logos/streamelements.svg",
+    label: "StreamElements", source: "streamElements", aliases: ["streamElements", "streamelements", "StreamElements"], profileEligible: false, defaultColor: "#1000FF", logo: "assets/logos/streamelements",
     events: { Tip: { label: "Tip", defaultEnabled: true, template: "sent a {amount} tip!" } }
   },
   streamlabs: {
-    label: "Streamlabs", source: "streamlabs", aliases: ["streamlabs", "Streamlabs"], profileEligible: false, defaultColor: "#80F5D2", logo: "assets/logos/streamlabs.svg",
+    label: "Streamlabs", source: "streamlabs", aliases: ["streamlabs", "Streamlabs"], profileEligible: false, defaultColor: "#80F5D2", logo: "assets/logos/streamlabs",
     events: {
       CharityDonation: { label: "Charity Donation", defaultEnabled: true, template: "sent a {amount} charity donation!" },
       Donation: { label: "Donation", defaultEnabled: true, template: "sent a {amount} donation!" }
     }
   },
   tipeeestream: {
-    label: "TipeeeStream", source: "tipeeeStream", aliases: ["tipeeeStream", "tipeeestream", "TipeeeStream"], profileEligible: false, defaultColor: "#FF7A00", logo: "assets/logos/tipeeestream.svg",
+    label: "TipeeeStream", source: "tipeeeStream", aliases: ["tipeeeStream", "tipeeestream", "TipeeeStream"], profileEligible: false, defaultColor: "#FF7A00", logo: "assets/logos/tipeeestream",
     events: { Donation: { label: "Donation", defaultEnabled: true, template: "sent a {amount} donation!" } }
   },
   treatstream: {
-    label: "TreatStream", source: "treatStream", aliases: ["treatStream", "treatstream", "TreatStream"], profileEligible: false, defaultColor: "#FF4FA3", logo: "assets/logos/treatstream.svg",
+    label: "TreatStream", source: "treatStream", aliases: ["treatStream", "treatstream", "TreatStream"], profileEligible: false, defaultColor: "#FF4FA3", logo: "assets/logos/treatstream",
     events: { Treat: { label: "Treat", defaultEnabled: true, template: "sent a treat!" } }
   }
 };
@@ -254,12 +254,16 @@ function defaultConfig(){
       betweenMs: 500,
       position: "center",
       scale: 100,
-      width: 750,
-      height: 300,
-      radius: 34,
-      imageSize: 118,
-      usernameSize: 44,
+      width: 740,
+      height: 190,
+      radius: 16,
+      padding: 20,
+      contentGap: 22,
+      imageSize: 150,
+      usernameSize: 42,
       actionSize: 24,
+      usernameMinSize: 24,
+      actionMinSize: 15,
       uppercaseUsername: true,
       fontFamily: "Inter, Arial, Helvetica, sans-serif",
       gradientStrength: 78,
@@ -425,7 +429,7 @@ function eventSample(platformKey, eventType){
   return { ...(samples[platformKey] || samples.twitch), __samplePlatform: platformKey, __sampleEvent: eventType };
 }
 
-let config = mergeConfig(JSON.parse(localStorage.getItem('spn-alerts-config-v020') || 'null'));
+let config = mergeConfig(JSON.parse(localStorage.getItem('spn-alerts-config-v021') || 'null'));
 const controls = document.getElementById('controls');
 const preview = document.getElementById('preview');
 const urlOutput = document.getElementById('urlOutput');
@@ -433,7 +437,7 @@ let debounceTimer = null;
 let autoPreviewTimer = null;
 
 function saveConfig(){
-  localStorage.setItem('spn-alerts-config-v020', JSON.stringify(config));
+  localStorage.setItem('spn-alerts-config-v021', JSON.stringify(config));
   updateUrls();
   debouncedPreviewReload();
 }
@@ -505,11 +509,15 @@ function renderControls(){
     buildField('Fixed Height', 'number', config.general.height, i => { config.general.height = Number(i.value); saveConfig(); }, {min:'150',step:'10'})
   ]);
   appendRow(body, [
+    buildField('Internal Padding', 'number', config.general.padding, i => { config.general.padding = Number(i.value); saveConfig(); }, {min:'0',max:'80',step:'1'}),
+    buildField('Text/Image Gap', 'number', config.general.contentGap, i => { config.general.contentGap = Number(i.value); saveConfig(); }, {min:'0',max:'80',step:'1'})
+  ]);
+  appendRow(body, [
     buildSelect('Position', config.general.position, [['center','Center'],['top','Top Center'],['bottom','Bottom Center'],['left','Center Left'],['right','Center Right'],['top-left','Top Left'],['top-right','Top Right'],['bottom-left','Bottom Left'],['bottom-right','Bottom Right']], i => { config.general.position = i.value; saveConfig(); }),
     buildField('Corner Radius', 'number', config.general.radius, i => { config.general.radius = Number(i.value); saveConfig(); }, {min:'0',step:'1'})
   ]);
   appendRow(body, [
-    buildField('Image Size', 'number', config.general.imageSize, i => { config.general.imageSize = Number(i.value); saveConfig(); }, {min:'60',max:'180',step:'2'}),
+    buildField('Image/Icon Box Size', 'number', config.general.imageSize, i => { config.general.imageSize = Number(i.value); saveConfig(); }, {min:'60',max:'180',step:'2'}),
     buildField('Username Font Size', 'number', config.general.usernameSize, i => { config.general.usernameSize = Number(i.value); saveConfig(); }, {min:'20',max:'80',step:'1'})
   ]);
   appendRow(body, [
