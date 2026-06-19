@@ -137,6 +137,15 @@
       letter-spacing: -0.08em;
       font-size: 28px;
       text-transform: uppercase;
+      overflow: hidden;
+    }
+
+    .platform-badge img {
+      width: 52px;
+      height: 52px;
+      object-fit: contain;
+      display: block;
+      filter: drop-shadow(0 8px 18px rgba(0,0,0,0.35));
     }
 
     .avatar,
@@ -172,41 +181,27 @@
       min-width: 0;
     }
 
-    .meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-
-    .meta span {
-      display: inline-flex;
-      align-items: center;
-      min-height: 24px;
-      padding: 4px 9px;
-      border-radius: 999px;
-      border: 1px solid var(--line-soft);
-      background: rgba(255,255,255,0.06);
-      color: var(--muted);
-      font-size: 10px;
-      font-weight: 900;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-    }
-
     .headline {
-      font-size: clamp(28px, 4.8vw, 46px);
-      line-height: 0.98;
+      font-size: clamp(36px, 5.8vw, 64px);
+      line-height: 0.95;
       font-weight: 1000;
       letter-spacing: -0.055em;
-      text-transform: uppercase;
+      overflow-wrap: anywhere;
+    }
+
+    .action {
+      margin-top: 10px;
+      color: rgba(255,255,255,0.84);
+      font-size: clamp(17px, 2.1vw, 24px);
+      font-weight: 750;
+      line-height: 1.25;
       overflow-wrap: anywhere;
     }
 
     .detail {
-      margin-top: 10px;
-      color: rgba(255,255,255,0.78);
-      font-size: clamp(15px, 2vw, 20px);
+      margin-top: 8px;
+      color: rgba(255,255,255,0.66);
+      font-size: clamp(14px, 1.7vw, 18px);
       font-weight: 700;
       line-height: 1.25;
       overflow-wrap: anywhere;
@@ -257,7 +252,7 @@
   <div id="statusBadge" class="status-badge">Disconnected</div>
 
   <script>
-    const VERSION = "0.1.0";
+    const VERSION = "0.1.1";
 
     const DEFAULT_GENERAL = {
       durationMs: 8000,
@@ -285,6 +280,7 @@
         label: "Twitch",
         badge: "TW",
         color: "#9146FF",
+        logoUrl: "https://cdn.simpleicons.org/twitch/ffffff",
         supportsAvatar: true,
         subscribeSource: "twitch",
         aliases: ["Twitch", "twitch"],
@@ -306,6 +302,7 @@
         label: "YouTube",
         badge: "YT",
         color: "#CD201F",
+        logoUrl: "https://cdn.simpleicons.org/youtube/ffffff",
         supportsAvatar: true,
         subscribeSource: "youTube",
         aliases: ["YouTube", "Youtube", "youTube", "youtube"],
@@ -324,6 +321,7 @@
         label: "Kick",
         badge: "K",
         color: "#00E701",
+        logoUrl: "https://cdn.simpleicons.org/kick/ffffff",
         supportsAvatar: true,
         subscribeSource: "kick",
         aliases: ["Kick", "kick"],
@@ -342,6 +340,7 @@
         label: "Fourthwall",
         badge: "FW",
         color: "#FFFFFF",
+        logoUrl: "https://www.google.com/s2/favicons?domain=fourthwall.com&sz=128",
         supportsAvatar: false,
         subscribeSource: "fourthwall",
         aliases: ["Fourthwall", "fourthwall", "FourthWall"],
@@ -357,6 +356,7 @@
         label: "Ko-Fi",
         badge: "KF",
         color: "#29ABE0",
+        logoUrl: "https://cdn.simpleicons.org/kofi/ffffff",
         supportsAvatar: false,
         subscribeSource: "kofi",
         aliases: ["Kofi", "Ko-Fi", "Ko Fi", "kofi"],
@@ -373,6 +373,7 @@
         label: "Pally.gg",
         badge: "PG",
         color: "#7869FF",
+        logoUrl: "https://www.google.com/s2/favicons?domain=pally.gg&sz=128",
         supportsAvatar: false,
         subscribeSource: "pallygg",
         aliases: ["Pallygg", "Pally.gg", "PallyGG", "pallygg"],
@@ -385,6 +386,7 @@
         label: "Patreon",
         badge: "PT",
         color: "#FF424D",
+        logoUrl: "https://cdn.simpleicons.org/patreon/ffffff",
         supportsAvatar: false,
         subscribeSource: "patreon",
         aliases: ["Patreon", "patreon"],
@@ -399,6 +401,7 @@
         label: "StreamElements",
         badge: "SE",
         color: "#1000FF",
+        logoUrl: "https://cdn.simpleicons.org/streamelements/ffffff",
         supportsAvatar: false,
         subscribeSource: "streamElements",
         aliases: ["StreamElements", "Stream Elements", "streamElements", "streamelements"],
@@ -411,6 +414,7 @@
         label: "Streamlabs",
         badge: "SL",
         color: "#80F5D2",
+        logoUrl: "https://cdn.simpleicons.org/streamlabs/ffffff",
         supportsAvatar: false,
         subscribeSource: "streamlabs",
         aliases: ["Streamlabs", "streamlabs"],
@@ -424,6 +428,7 @@
         label: "TipeeeStream",
         badge: "TS",
         color: "#FF8A00",
+        logoUrl: "https://www.google.com/s2/favicons?domain=tipeeestream.com&sz=128",
         supportsAvatar: false,
         subscribeSource: "tipeeeStream",
         aliases: ["TipeeeStream", "Tipeee Stream", "tipeeeStream", "tipeeestream"],
@@ -436,6 +441,7 @@
         label: "TreatStream",
         badge: "TR",
         color: "#FF5A7A",
+        logoUrl: "https://www.google.com/s2/favicons?domain=treatstream.com&sz=128",
         supportsAvatar: false,
         subscribeSource: "treatStream",
         aliases: ["TreatStream", "Treat Stream", "treatStream", "treatstream"],
@@ -710,19 +716,23 @@
       const platformState = config.platforms[platformDef.id];
       const eventState = platformState.events?.[eventDef.key] || {};
       const values = buildValues(platformDef, eventDef, data);
-      const headline = formatTemplate(eventState.template || eventDef.template, values) || eventDef.label;
-      const detail = makeDetail(eventDef, values);
+      const renderedTemplate = formatTemplate(eventState.template || eventDef.template, values) || eventDef.label;
+      const action = makeActionLine(renderedTemplate, values.user);
+      const detail = makeDetail(eventDef, values, action);
+      const showAvatar = !!(platformDef.supportsAvatar && platformState.showAvatar && values.avatar);
 
       return {
         platformId: platformDef.id,
         platformLabel: platformDef.label,
         badge: platformDef.badge,
+        logoUrl: platformDef.logoUrl || "",
         color: platformState.color || platformDef.color,
         eventLabel: eventDef.label,
-        headline,
+        headline: values.user || "Someone",
+        action,
         detail,
-        avatar: platformDef.supportsAvatar ? values.avatar : "",
-        showAvatar: !!(platformDef.supportsAvatar && platformState.showAvatar && values.avatar),
+        avatar: showAvatar ? values.avatar : "",
+        showAvatar,
         showBadge: !!(config.general.showBadge && platformState.showBadge),
         soundUrl: platformState.soundUrl || config.general.soundUrl,
         volume: Number.isFinite(Number(platformState.volume)) ? Number(platformState.volume) : Number(config.general.volume || 70)
@@ -750,8 +760,10 @@
       const message = pick(data, ["message", "comment", "note", "text", "userInput", "input", "superChat.message", "data.message"]);
       const avatar = pick(data, [
         "user.profileImageUrl", "user.profileImage", "user.profilePicture", "user.profileUrl", "user.avatar", "user.avatarUrl",
-        "author.profileImageUrl", "author.avatar", "profileImageUrl", "profileImage", "profilePicture", "avatar", "avatarUrl",
-        "sender.profileImageUrl", "sender.avatar"
+        "author.profileImageUrl", "author.profileImage", "author.profilePicture", "author.photoUrl", "author.avatar", "author.avatarUrl",
+        "profileImageUrl", "profileImage", "profilePicture", "profilePhoto", "photoUrl", "photo", "avatar", "avatarUrl",
+        "sender.profileImageUrl", "sender.profileImage", "sender.profilePicture", "sender.avatar", "sender.avatarUrl",
+        "channel.profileImageUrl", "channel.avatar", "kickUser.profilepic", "kickUser.profilePicture"
       ]);
 
       return {
@@ -793,12 +805,26 @@
       return String(amount);
     }
 
-    function makeDetail(eventDef, values) {
-      if (values.message) return values.message;
+    function makeDetail(eventDef, values, actionText = "") {
+      const actionLower = String(actionText || "").toLowerCase();
+      if (values.message && !actionLower.includes(String(values.message).toLowerCase())) return values.message;
       const parts = [];
-      if (values.amount) parts.push(values.amount);
-      if (values.title && values.title !== eventDef.label) parts.push(values.title);
+      if (values.amount && !actionLower.includes(String(values.amount).toLowerCase())) parts.push(values.amount);
+      if (values.title && values.title !== eventDef.label && !actionLower.includes(String(values.title).toLowerCase())) parts.push(values.title);
       return [...new Set(parts)].join(" · ");
+    }
+
+    function makeActionLine(renderedTemplate, user) {
+      let action = String(renderedTemplate || "").trim();
+      const username = String(user || "").trim();
+      if (username) {
+        action = action.replace(new RegExp(`^\\s*@?${escapeRegExp(username)}\\b`, "i"), "");
+      }
+      action = action
+        .replace(/^[\s:·,|\-–—]+/, "")
+        .replace(/^(has|have|just)?\s*$/i, "")
+        .trim();
+      return action || "triggered an alert";
     }
 
     function formatTemplate(template, values) {
@@ -845,7 +871,7 @@
 
     function renderAlert(alert) {
       stage.innerHTML = "";
-      stage.classList.toggle("empty-media", !alert.showAvatar && !alert.showBadge);
+      stage.classList.remove("empty-media");
       const card = document.createElement("article");
       card.className = "alert-card";
       card.style.setProperty("--alert-color", alert.color || "#7869ff");
@@ -861,26 +887,20 @@
         img.referrerPolicy = "no-referrer";
         img.onerror = () => img.replaceWith(makeBadge(alert));
         media.appendChild(img);
-        if (alert.showBadge) {
-          const chip = document.createElement("div");
-          chip.className = "platform-chip";
-          chip.textContent = alert.badge;
-          media.appendChild(chip);
-        }
-      } else if (alert.showBadge) {
+        if (alert.showBadge) media.appendChild(makePlatformChip(alert));
+      } else {
         media.appendChild(makeBadge(alert));
       }
 
       const content = document.createElement("div");
       content.className = "content";
       content.innerHTML = `
-        <div class="meta"><span>${escapeHtml(alert.platformLabel)}</span><span>${escapeHtml(alert.eventLabel)}</span></div>
         <div class="headline">${escapeHtml(alert.headline)}</div>
+        <div class="action">${escapeHtml(alert.action)}</div>
         ${alert.detail ? `<div class="detail">${escapeHtml(alert.detail)}</div>` : ""}
       `;
 
-      if (alert.showAvatar || alert.showBadge) card.append(media, content);
-      else card.append(content);
+      card.append(media, content);
       stage.appendChild(card);
       requestAnimationFrame(() => card.classList.add("show"));
     }
@@ -888,8 +908,26 @@
     function makeBadge(alert) {
       const badge = document.createElement("div");
       badge.className = "platform-badge";
-      badge.textContent = alert.badge || alert.platformLabel.slice(0, 2);
+      if (alert.logoUrl) {
+        const logo = document.createElement("img");
+        logo.src = alert.logoUrl;
+        logo.alt = `${alert.platformLabel} logo`;
+        logo.referrerPolicy = "no-referrer";
+        logo.onerror = () => {
+          badge.textContent = alert.badge || alert.platformLabel.slice(0, 2);
+        };
+        badge.appendChild(logo);
+      } else {
+        badge.textContent = alert.badge || alert.platformLabel.slice(0, 2);
+      }
       return badge;
+    }
+
+    function makePlatformChip(alert) {
+      const chip = document.createElement("div");
+      chip.className = "platform-chip";
+      chip.textContent = alert.badge;
+      return chip;
     }
 
     function playSound(alert) {
@@ -1026,6 +1064,10 @@
       statusBadge.classList.toggle("connected", type === "connected");
       statusBadge.classList.toggle("error", type === "error");
       statusBadge.classList.toggle("show", !!config.general.showConnectionStatus || forcePreview);
+    }
+
+    function escapeRegExp(value) {
+      return String(value ?? "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     }
 
     function escapeHtml(value) {
