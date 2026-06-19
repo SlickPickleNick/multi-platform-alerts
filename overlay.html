@@ -1,1083 +1,631 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SlickPickleNick Alert Overlay</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SlickPickleNick Multiplatform Alerts</title>
   <style>
     :root {
-      --alert-color: #7869ff;
+      --alert-width: 750px;
+      --alert-height: 300px;
+      --radius: 34px;
+      --image-size: 118px;
+      --username-size: 44px;
+      --action-size: 24px;
       --scale: 1;
-      --transition: 750ms;
-      --panel-bg: rgba(10, 12, 20, 0.76);
-      --line: rgba(255, 255, 255, 0.15);
-      --line-soft: rgba(255, 255, 255, 0.08);
-      --text: rgba(255, 255, 255, 0.95);
-      --muted: rgba(255, 255, 255, 0.68);
-      --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --transition-ms: 650ms;
+      --pc-r: 119;
+      --pc-g: 101;
+      --pc-b: 255;
+      --gradient-strength: .78;
+      --card-opacity: .92;
+      --blur: 18px;
+      --font-family: Inter, Arial, Helvetica, sans-serif;
     }
-
     * { box-sizing: border-box; }
-
-    html,
-    body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: transparent;
-      font-family: var(--font);
-      color: var(--text);
-    }
-
-    body {
-      position: relative;
-    }
-
-    #stage {
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent; font-family: var(--font-family); }
+    body.debug { background: radial-gradient(circle at center, rgba(120, 105, 255, .12), rgba(0,0,0,.1)); }
+    .stage {
       position: fixed;
       inset: 0;
       display: flex;
+      padding: 36px;
       pointer-events: none;
-      padding: 44px;
     }
-
-    #stage.position-center { align-items: center; justify-content: center; }
-    #stage.position-top { align-items: flex-start; justify-content: center; }
-    #stage.position-bottom { align-items: flex-end; justify-content: center; }
-    #stage.position-left { align-items: center; justify-content: flex-start; }
-    #stage.position-right { align-items: center; justify-content: flex-end; }
-
+    .stage.center { align-items: center; justify-content: center; }
+    .stage.top { align-items: flex-start; justify-content: center; }
+    .stage.bottom { align-items: flex-end; justify-content: center; }
+    .stage.left { align-items: center; justify-content: flex-start; }
+    .stage.right { align-items: center; justify-content: flex-end; }
+    .stage.top-left { align-items: flex-start; justify-content: flex-start; }
+    .stage.top-right { align-items: flex-start; justify-content: flex-end; }
+    .stage.bottom-left { align-items: flex-end; justify-content: flex-start; }
+    .stage.bottom-right { align-items: flex-end; justify-content: flex-end; }
+    .alert-shell {
+      width: var(--alert-width);
+      height: var(--alert-height);
+      transform: scale(var(--scale));
+      transform-origin: center center;
+      position: relative;
+    }
     .alert-card {
-      --accent: var(--alert-color);
-      position: relative;
+      width: var(--alert-width);
+      height: var(--alert-height);
+      border-radius: var(--radius);
+      padding: 38px 46px;
       display: grid;
-      grid-template-columns: auto minmax(0, 1fr);
-      gap: 18px;
+      grid-template-columns: var(--image-size) 1fr;
       align-items: center;
-      width: min(760px, calc(100vw - 88px));
-      min-height: 138px;
-      padding: 22px 24px;
-      border: 1px solid var(--line);
-      border-radius: 28px;
-      background:
-        radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--accent), transparent 64%), transparent 44%),
-        linear-gradient(135deg, rgba(255,255,255,0.11), rgba(255,255,255,0.035)),
-        var(--panel-bg);
-      box-shadow:
-        0 28px 80px rgba(0, 0, 0, 0.54),
-        0 0 50px color-mix(in srgb, var(--accent), transparent 78%);
+      gap: 36px;
       overflow: hidden;
-      transform: translateY(22px) scale(calc(var(--scale) * 0.96));
+      position: absolute;
+      inset: 0;
+      border: 1px solid rgba(255,255,255,.16);
+      background:
+        radial-gradient(circle at 16% 12%, rgba(var(--pc-r), var(--pc-g), var(--pc-b), calc(var(--gradient-strength) * .55)), transparent 34%),
+        linear-gradient(112deg, rgba(var(--pc-r), var(--pc-g), var(--pc-b), calc(var(--gradient-strength) * .42)) 0%, rgba(var(--pc-r), var(--pc-g), var(--pc-b), calc(var(--gradient-strength) * .22)) 30%, rgba(9, 11, 20, var(--card-opacity)) 72%),
+        rgba(9, 11, 20, var(--card-opacity));
+      box-shadow: 0 30px 80px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.12);
+      -webkit-backdrop-filter: blur(var(--blur));
+      backdrop-filter: blur(var(--blur));
       opacity: 0;
+      transform: translate3d(0, 18px, 0) scale(.965);
       filter: blur(8px);
-      transition:
-        opacity var(--transition) cubic-bezier(.2,.8,.2,1),
-        transform var(--transition) cubic-bezier(.2,.8,.2,1),
-        filter var(--transition) cubic-bezier(.2,.8,.2,1);
+      transition: opacity var(--transition-ms) ease, transform var(--transition-ms) cubic-bezier(.2,.9,.2,1), filter var(--transition-ms) ease;
     }
-
-    .alert-card.show {
-      opacity: 1;
-      filter: blur(0);
-      transform: translateY(0) scale(var(--scale));
-    }
-
-    .alert-card::before {
-      content: "";
-      position: absolute;
-      inset: 0 auto 0 0;
-      width: 7px;
-      background: var(--accent);
-      box-shadow: 0 0 32px var(--accent);
-    }
-
-    .alert-card::after {
-      content: "";
-      position: absolute;
-      inset: -2px;
-      background:
-        linear-gradient(120deg, transparent, rgba(255,255,255,0.16), transparent);
-      transform: translateX(-120%);
-      animation: sheen 2600ms ease-in-out infinite;
-      pointer-events: none;
-      opacity: 0.65;
-    }
-
-    @keyframes sheen {
-      0%, 45% { transform: translateX(-120%); }
-      100% { transform: translateX(120%); }
-    }
-
-    .media {
-      position: relative;
-      z-index: 1;
-      width: 92px;
-      height: 92px;
-      display: grid;
-      place-items: center;
-    }
-
-    .platform-badge,
-    .avatar,
-    .fallback-avatar {
-      border-radius: 24px;
-      border: 1px solid var(--line);
-      box-shadow: 0 16px 40px rgba(0,0,0,0.38);
-    }
-
-    .platform-badge {
-      width: 86px;
-      height: 86px;
-      display: grid;
-      place-items: center;
-      background: color-mix(in srgb, var(--accent), rgba(0,0,0,0.58) 42%);
-      color: white;
-      font-weight: 1000;
-      letter-spacing: -0.08em;
-      font-size: 28px;
-      text-transform: uppercase;
+    .alert-card.is-visible { opacity: 1; transform: translate3d(0,0,0) scale(1); filter: blur(0); }
+    .alert-card.is-leaving { opacity: 0; transform: translate3d(0,-14px,0) scale(.982); filter: blur(4px); }
+    .media-wrap {
+      width: var(--image-size);
+      height: var(--image-size);
+      border-radius: 28px;
       overflow: hidden;
-    }
-
-    .platform-badge img {
-      width: 52px;
-      height: 52px;
-      object-fit: contain;
-      display: block;
-      filter: drop-shadow(0 8px 18px rgba(0,0,0,0.35));
-    }
-
-    .avatar,
-    .fallback-avatar {
-      width: 86px;
-      height: 86px;
-      object-fit: cover;
-      background: rgba(255,255,255,0.08);
-    }
-
-    .platform-chip {
-      position: absolute;
-      right: -2px;
-      bottom: -3px;
-      z-index: 2;
-      min-width: 34px;
-      height: 28px;
       display: grid;
       place-items: center;
-      border: 1px solid rgba(255,255,255,0.18);
-      border-radius: 999px;
-      padding: 0 8px;
-      background: color-mix(in srgb, var(--accent), rgba(0,0,0,0.7) 52%);
-      font-size: 10px;
-      font-weight: 1000;
-      letter-spacing: 0.04em;
+      background: rgba(255,255,255,.09);
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 18px 42px rgba(0,0,0,.24);
+    }
+    .media-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .media-wrap.logo img { object-fit: contain; padding: 16px; }
+    .text-wrap { min-width: 0; }
+    .username {
       color: #fff;
-    }
-
-    .content {
-      position: relative;
-      z-index: 1;
-      min-width: 0;
-    }
-
-    .headline {
-      font-size: clamp(36px, 5.8vw, 64px);
-      line-height: 0.95;
-      font-weight: 1000;
-      letter-spacing: -0.055em;
-      overflow-wrap: anywhere;
-    }
-
-    .action {
-      margin-top: 10px;
-      color: rgba(255,255,255,0.84);
-      font-size: clamp(17px, 2.1vw, 24px);
-      font-weight: 750;
-      line-height: 1.25;
-      overflow-wrap: anywhere;
-    }
-
-    .detail {
-      margin-top: 8px;
-      color: rgba(255,255,255,0.66);
-      font-size: clamp(14px, 1.7vw, 18px);
-      font-weight: 700;
-      line-height: 1.25;
-      overflow-wrap: anywhere;
-    }
-
-    .empty-media .alert-card {
-      grid-template-columns: minmax(0, 1fr);
-      padding-left: 28px;
-    }
-
-    .status-badge {
-      position: fixed;
-      right: 18px;
-      bottom: 18px;
-      z-index: 20;
-      display: none;
-      max-width: min(440px, calc(100vw - 36px));
-      padding: 9px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      background: rgba(5, 7, 14, 0.78);
-      backdrop-filter: blur(16px);
-      color: rgba(255,255,255,0.76);
-      font-size: 11px;
-      font-weight: 900;
-      letter-spacing: 0.07em;
+      font-size: var(--username-size);
+      line-height: .96;
+      font-weight: 950;
+      letter-spacing: -2.1px;
       text-transform: uppercase;
-      white-space: nowrap;
+      text-shadow: 0 4px 28px rgba(0,0,0,.35);
       overflow: hidden;
-      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
     }
-
-    .status-badge.show { display: block; }
-    .status-badge.connected { color: #57f287; }
-    .status-badge.error { color: #ff5577; }
-
-    @media (prefers-reduced-motion: reduce) {
-      .alert-card,
-      .alert-card::after {
-        transition: none;
-        animation: none;
-      }
+    .action {
+      margin-top: 18px;
+      color: rgba(255,255,255,.88);
+      font-size: var(--action-size);
+      line-height: 1.2;
+      font-weight: 750;
+      letter-spacing: -.45px;
+      text-shadow: 0 3px 16px rgba(0,0,0,.32);
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
     }
+    .status {
+      position: fixed;
+      left: 18px;
+      bottom: 18px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      color: rgba(255,255,255,.78);
+      background: rgba(0,0,0,.42);
+      border: 1px solid rgba(255,255,255,.14);
+      font-size: 12px;
+      line-height: 1;
+      display: none;
+    }
+    body.debug .status { display: block; }
   </style>
 </head>
 <body>
-  <div id="stage" class="position-center" aria-live="polite"></div>
-  <div id="statusBadge" class="status-badge">Disconnected</div>
+  <div id="stage" class="stage center">
+    <div class="alert-shell" aria-live="polite" aria-atomic="true">
+      <article id="alertCard" class="alert-card" role="status">
+        <div id="mediaWrap" class="media-wrap logo"><img id="media" alt="Alert source"></div>
+        <div class="text-wrap">
+          <div id="username" class="username">SLICKPICKLENICK</div>
+          <div id="action" class="action">just followed!</div>
+        </div>
+      </article>
+    </div>
+  </div>
+  <div id="status" class="status">Loading…</div>
+  <audio id="alertAudio" preload="auto"></audio>
+<script>
 
-  <script>
-    const VERSION = "0.1.1";
+const SPN_VERSION = "v0.2.0";
+const PLATFORM_DEFS = {
+  twitch: {
+    label: "Twitch", source: "twitch", aliases: ["twitch"], profileEligible: true, defaultColor: "#9146FF", logo: "assets/logos/twitch.svg",
+    events: {
+      Follow: { label: "Follow", defaultEnabled: true, template: "just followed!" },
+      RewardRedemption: { label: "Channel Point Redemption", defaultEnabled: true, template: "redeemed {reward} for {cost} points!" },
+      AutomaticRewardRedemption: { label: "Automatic Reward Redemption", defaultEnabled: true, template: "redeemed {reward}!" },
+      Cheer: { label: "Bits / Cheer", defaultEnabled: true, template: "cheered {bits} bits!" },
+      CoinCheer: { label: "Coin Cheer", defaultEnabled: true, template: "sent {bits} bits!" },
+      Sub: { label: "New / Prime Subscription", defaultEnabled: true, template: "just subscribed{tierText}!" },
+      ReSub: { label: "Resubscription", defaultEnabled: true, template: "just resubscribed, and has been a sub for {months} months!" },
+      GiftSub: { label: "Gifted Subscription", defaultEnabled: true, template: "gifted a subscription to {recipient}!" },
+      GiftBomb: { label: "Community Gift", defaultEnabled: true, template: "gifted {count} subscriptions to the community!" },
+      Raid: { label: "Incoming Raid", defaultEnabled: true, template: "raided with {viewers} viewers!" },
+      CharityDonation: { label: "Charity Donation", defaultEnabled: true, template: "donated {amount} to charity!" }
+    }
+  },
+  youtube: {
+    label: "YouTube", source: "youTube", aliases: ["youtube", "youTube", "YouTube"], profileEligible: true, defaultColor: "#CD201F", logo: "assets/logos/youtube.svg",
+    events: {
+      NewSubscriber: { label: "Subscribed", defaultEnabled: true, template: "just subscribed!" },
+      JewelsGifted: { label: "Jewels Gifted", defaultEnabled: true, template: "gifted {amount} jewels!" },
+      SuperChat: { label: "Super Chat", defaultEnabled: true, template: "sent a {amount} Super Chat!" },
+      SuperSticker: { label: "Super Sticker", defaultEnabled: true, template: "sent a {amount} Super Sticker!" },
+      MembershipGift: { label: "Membership Gift", defaultEnabled: true, template: "gifted {count} memberships!" },
+      GiftMembershipReceived: { label: "Gift Membership Received", defaultEnabled: true, template: "received a gifted membership!" },
+      MemberMileStone: { label: "Member Milestone", defaultEnabled: true, template: "hit a membership milestone of {months} months!" },
+      NewSponsor: { label: "New Sponsor", defaultEnabled: true, template: "became a new sponsor!" }
+    }
+  },
+  kick: {
+    label: "Kick", source: "kick", aliases: ["kick", "Kick"], profileEligible: true, defaultColor: "#00E701", logo: "assets/logos/kick.svg",
+    events: {
+      RewardRedemption: { label: "Channel Reward Redemption", defaultEnabled: true, template: "redeemed {reward} for {cost} points!" },
+      Follow: { label: "Follow", defaultEnabled: true, template: "just followed!" },
+      sGifted: { label: "Gifted Kicks", defaultEnabled: true, template: "gifted {count} kicks!" },
+      GiftSubscription: { label: "Gift Subscription", defaultEnabled: true, template: "gifted a subscription to {recipient}!" },
+      MassGiftSubscription: { label: "Mass Gift Subscriptions", defaultEnabled: true, template: "gifted {count} subscriptions to the community!" },
+      Resubscription: { label: "Resubscription", defaultEnabled: true, template: "just resubscribed for {months} months!" },
+      Subscription: { label: "Subscription", defaultEnabled: true, template: "just subscribed!" }
+    }
+  },
+  fourthwall: {
+    label: "Fourthwall", source: "fourthwall", aliases: ["fourthwall", "Fourthwall"], profileEligible: false, defaultColor: "#FFFFFF", logo: "assets/logos/fourthwall.svg",
+    events: {
+      Donation: { label: "Donation", defaultEnabled: true, template: "sent a {amount} donation!" },
+      GiftPurchase: { label: "Gift Purchase", defaultEnabled: true, template: "sent a gift purchase!" },
+      OrderPlaced: { label: "Order Placed", defaultEnabled: true, template: "placed an order!" },
+      SubscriptionPurchased: { label: "Subscription Purchased", defaultEnabled: true, template: "purchased a subscription!" }
+    }
+  },
+  kofi: {
+    label: "Ko-Fi", source: "kofi", aliases: ["kofi", "koFi", "Ko-Fi", "KoFi"], profileEligible: false, defaultColor: "#29ABE0", logo: "assets/logos/kofi.svg",
+    events: {
+      Commission: { label: "Commission", defaultEnabled: true, template: "placed a commission!" },
+      Donation: { label: "Donation", defaultEnabled: true, template: "sent a {amount} donation!" },
+      Resubscription: { label: "Resubscription", defaultEnabled: true, template: "renewed their subscription!" },
+      ShopOrder: { label: "Shop Order", defaultEnabled: true, template: "placed a shop order!" },
+      Subscription: { label: "Subscription", defaultEnabled: true, template: "started a subscription!" }
+    }
+  },
+  pallygg: {
+    label: "Pally.gg", source: "pallygg", aliases: ["pallygg", "pally.gg", "Pally.gg"], profileEligible: false, defaultColor: "#7765FF", logo: "assets/logos/pallygg.svg",
+    events: { CampaignTip: { label: "Campaign Tip", defaultEnabled: true, template: "sent a {amount} campaign tip!" } }
+  },
+  patreon: {
+    label: "Patreon", source: "patreon", aliases: ["patreon", "Patreon"], profileEligible: false, defaultColor: "#FF424D", logo: "assets/logos/patreon.svg",
+    events: {
+      FollowCreated: { label: "Follow Created", defaultEnabled: true, template: "followed on Patreon!" },
+      PledgeCreated: { label: "Pledge Created", defaultEnabled: true, template: "created a pledge!" },
+      PledgeUpdated: { label: "Pledge Updated", defaultEnabled: true, template: "updated their pledge!" }
+    }
+  },
+  streamelements: {
+    label: "StreamElements", source: "streamElements", aliases: ["streamElements", "streamelements", "StreamElements"], profileEligible: false, defaultColor: "#1000FF", logo: "assets/logos/streamelements.svg",
+    events: { Tip: { label: "Tip", defaultEnabled: true, template: "sent a {amount} tip!" } }
+  },
+  streamlabs: {
+    label: "Streamlabs", source: "streamlabs", aliases: ["streamlabs", "Streamlabs"], profileEligible: false, defaultColor: "#80F5D2", logo: "assets/logos/streamlabs.svg",
+    events: {
+      CharityDonation: { label: "Charity Donation", defaultEnabled: true, template: "sent a {amount} charity donation!" },
+      Donation: { label: "Donation", defaultEnabled: true, template: "sent a {amount} donation!" }
+    }
+  },
+  tipeeestream: {
+    label: "TipeeeStream", source: "tipeeeStream", aliases: ["tipeeeStream", "tipeeestream", "TipeeeStream"], profileEligible: false, defaultColor: "#FF7A00", logo: "assets/logos/tipeeestream.svg",
+    events: { Donation: { label: "Donation", defaultEnabled: true, template: "sent a {amount} donation!" } }
+  },
+  treatstream: {
+    label: "TreatStream", source: "treatStream", aliases: ["treatStream", "treatstream", "TreatStream"], profileEligible: false, defaultColor: "#FF4FA3", logo: "assets/logos/treatstream.svg",
+    events: { Treat: { label: "Treat", defaultEnabled: true, template: "sent a treat!" } }
+  }
+};
 
-    const DEFAULT_GENERAL = {
-      durationMs: 8000,
-      transitionMs: 750,
+function deepClone(obj){ return JSON.parse(JSON.stringify(obj)); }
+function defaultConfig(){
+  const cfg = {
+    general: {
+      wsUrl: "ws://127.0.0.1:8080/",
+      reconnect: true,
+      debug: false,
+      durationMs: 7000,
+      transitionMs: 650,
+      betweenMs: 500,
       position: "center",
       scale: 100,
+      width: 750,
+      height: 300,
+      radius: 34,
+      imageSize: 118,
+      usernameSize: 44,
+      actionSize: 24,
+      uppercaseUsername: true,
+      fontFamily: "Inter, Arial, Helvetica, sans-serif",
+      gradientStrength: 78,
+      cardOpacity: 92,
+      blur: 18,
+      soundUrl: "assets/sounds/default-alert.wav",
+      soundVolume: 70,
+      soundEnabled: true,
+      soundMode: "global",
+      randomPreviewSeconds: 8
+    },
+    platforms: {}
+  };
+  Object.entries(PLATFORM_DEFS).forEach(([key, p]) => {
+    cfg.platforms[key] = {
+      enabled: true,
+      color: p.defaultColor,
+      logo: p.logo,
+      useProfileImage: !!p.profileEligible,
       soundUrl: "",
-      volume: 70,
-      showBadge: true,
-      showConnectionStatus: false,
-      previewEnabled: true,
-      previewFrequencyMs: 7000
+      soundVolume: 70,
+      events: {}
     };
-
-    const DEFAULT_CONNECTION = {
-      host: "127.0.0.1",
-      port: 8080,
-      endpoint: "/",
-      password: ""
-    };
-
-    const PLATFORM_DEFINITIONS = [
-      {
-        id: "twitch",
-        label: "Twitch",
-        badge: "TW",
-        color: "#9146FF",
-        logoUrl: "https://cdn.simpleicons.org/twitch/ffffff",
-        supportsAvatar: true,
-        subscribeSource: "twitch",
-        aliases: ["Twitch", "twitch"],
-        events: [
-          { key: "follow", label: "Follow", sourceEvent: "Follow", template: "{user} followed the channel" },
-          { key: "rewardRedemption", label: "Channel Point Redemption", sourceEvent: "RewardRedemption", template: "{user} redeemed {title} for {amount} points" },
-          { key: "cheer", label: "Bits / Cheers", sourceEvent: "Cheer", template: "{user} cheered {amount} bits" },
-          { key: "primeSub", label: "Prime Subscription", sourceEvent: "Sub", template: "{user} subscribed with Prime" },
-          { key: "newSub", label: "New Subscriber", sourceEvent: "Sub", template: "{user} subscribed at {tier}" },
-          { key: "resub", label: "Resubscription", sourceEvent: "ReSub", template: "{user} resubscribed for {months} months" },
-          { key: "giftSub", label: "Gifted Subscription", sourceEvent: "GiftSub", template: "{user} gifted a subscription to {recipient}" },
-          { key: "communityGift", label: "Community Gift", sourceEvent: "GiftBomb", template: "{user} gifted {amount} subscriptions to the community" },
-          { key: "raid", label: "Incoming Raid", sourceEvent: "Raid", template: "{user} raided with {amount} viewers" },
-          { key: "charityDonation", label: "Charity Donation", sourceEvent: "CharityDonation", template: "{user} donated {amount} to charity" }
-        ]
-      },
-      {
-        id: "youtube",
-        label: "YouTube",
-        badge: "YT",
-        color: "#CD201F",
-        logoUrl: "https://cdn.simpleicons.org/youtube/ffffff",
-        supportsAvatar: true,
-        subscribeSource: "youTube",
-        aliases: ["YouTube", "Youtube", "youTube", "youtube"],
-        events: [
-          { key: "subscribed", label: "Subscribed", sourceEvent: "NewSubscriber", template: "{user} subscribed" },
-          { key: "jewelsGifted", label: "Jewels Gifted", sourceEvent: "JewelsGifted", template: "{user} gifted {amount} jewels" },
-          { key: "superChat", label: "Super Chat", sourceEvent: "SuperChat", template: "{user} sent a {amount} Super Chat" },
-          { key: "superSticker", label: "Super Sticker", sourceEvent: "SuperSticker", template: "{user} sent a {amount} Super Sticker" },
-          { key: "membershipGift", label: "Membership Gift", sourceEvent: "MembershipGift", template: "{user} gifted {amount} memberships" },
-          { key: "memberMilestone", label: "Member Milestone", sourceEvent: "MemberMileStone", template: "{user} hit a member milestone" },
-          { key: "newSponsor", label: "New Sponsor", sourceEvent: "NewSponsor", template: "{user} became a sponsor" }
-        ]
-      },
-      {
-        id: "kick",
-        label: "Kick",
-        badge: "K",
-        color: "#00E701",
-        logoUrl: "https://cdn.simpleicons.org/kick/ffffff",
-        supportsAvatar: true,
-        subscribeSource: "kick",
-        aliases: ["Kick", "kick"],
-        events: [
-          { key: "rewardRedemption", label: "Channel Reward Redemption", sourceEvent: "RewardRedemption", template: "{user} redeemed {title}" },
-          { key: "follow", label: "Follow", sourceEvent: "Follow", template: "{user} followed the channel" },
-          { key: "giftedKicks", label: "Gifted Kicks", sourceEvent: "sGifted", template: "{user} gifted {amount} Kicks" },
-          { key: "giftSubscription", label: "Gift Subscription", sourceEvent: "GiftSubscription", template: "{user} gifted a subscription to {recipient}" },
-          { key: "massGiftSubscription", label: "Mass Gift Subscriptions", sourceEvent: "MassGiftSubscription", template: "{user} gifted {amount} subscriptions" },
-          { key: "resubscription", label: "Resubscription", sourceEvent: "Resubscription", template: "{user} resubscribed for {months} months" },
-          { key: "subscription", label: "Subscription", sourceEvent: "Subscription", template: "{user} subscribed" }
-        ]
-      },
-      {
-        id: "fourthwall",
-        label: "Fourthwall",
-        badge: "FW",
-        color: "#FFFFFF",
-        logoUrl: "https://www.google.com/s2/favicons?domain=fourthwall.com&sz=128",
-        supportsAvatar: false,
-        subscribeSource: "fourthwall",
-        aliases: ["Fourthwall", "fourthwall", "FourthWall"],
-        events: [
-          { key: "donation", label: "Donation", sourceEvent: "Donation", template: "{user} donated {amount}" },
-          { key: "giftPurchase", label: "Gift Purchase", sourceEvent: "GiftPurchase", template: "{user} purchased a gift" },
-          { key: "orderPlaced", label: "Order Placed", sourceEvent: "OrderPlaced", template: "{user} placed an order" },
-          { key: "subscriptionPurchased", label: "Subscription Purchased", sourceEvent: "SubscriptionPurchased", template: "{user} purchased a subscription" }
-        ]
-      },
-      {
-        id: "kofi",
-        label: "Ko-Fi",
-        badge: "KF",
-        color: "#29ABE0",
-        logoUrl: "https://cdn.simpleicons.org/kofi/ffffff",
-        supportsAvatar: false,
-        subscribeSource: "kofi",
-        aliases: ["Kofi", "Ko-Fi", "Ko Fi", "kofi"],
-        events: [
-          { key: "commission", label: "Commission", sourceEvent: "Commission", template: "{user} commissioned {title}" },
-          { key: "donation", label: "Donation", sourceEvent: "Donation", template: "{user} donated {amount}" },
-          { key: "resubscription", label: "Resubscription", sourceEvent: "Resubscription", template: "{user} renewed a Ko-Fi subscription" },
-          { key: "shopOrder", label: "Shop Order", sourceEvent: "ShopOrder", template: "{user} placed a Ko-Fi shop order" },
-          { key: "subscription", label: "Subscription", sourceEvent: "Subscription", template: "{user} started a Ko-Fi subscription" }
-        ]
-      },
-      {
-        id: "pallygg",
-        label: "Pally.gg",
-        badge: "PG",
-        color: "#7869FF",
-        logoUrl: "https://www.google.com/s2/favicons?domain=pally.gg&sz=128",
-        supportsAvatar: false,
-        subscribeSource: "pallygg",
-        aliases: ["Pallygg", "Pally.gg", "PallyGG", "pallygg"],
-        events: [
-          { key: "campaignTip", label: "Campaign Tip", sourceEvent: "CampaignTip", template: "{user} tipped {amount} to the campaign" }
-        ]
-      },
-      {
-        id: "patreon",
-        label: "Patreon",
-        badge: "PT",
-        color: "#FF424D",
-        logoUrl: "https://cdn.simpleicons.org/patreon/ffffff",
-        supportsAvatar: false,
-        subscribeSource: "patreon",
-        aliases: ["Patreon", "patreon"],
-        events: [
-          { key: "followCreated", label: "Follow Created", sourceEvent: "FollowCreated", template: "{user} followed on Patreon" },
-          { key: "pledgeCreated", label: "Pledge Created", sourceEvent: "PledgeCreated", template: "{user} created a Patreon pledge" },
-          { key: "pledgeUpdated", label: "Pledge Updated", sourceEvent: "PledgeUpdated", template: "{user} updated a Patreon pledge" }
-        ]
-      },
-      {
-        id: "streamElements",
-        label: "StreamElements",
-        badge: "SE",
-        color: "#1000FF",
-        logoUrl: "https://cdn.simpleicons.org/streamelements/ffffff",
-        supportsAvatar: false,
-        subscribeSource: "streamElements",
-        aliases: ["StreamElements", "Stream Elements", "streamElements", "streamelements"],
-        events: [
-          { key: "tip", label: "Tip", sourceEvent: "Tip", template: "{user} tipped {amount}" }
-        ]
-      },
-      {
-        id: "streamlabs",
-        label: "Streamlabs",
-        badge: "SL",
-        color: "#80F5D2",
-        logoUrl: "https://cdn.simpleicons.org/streamlabs/ffffff",
-        supportsAvatar: false,
-        subscribeSource: "streamlabs",
-        aliases: ["Streamlabs", "streamlabs"],
-        events: [
-          { key: "charityDonation", label: "Charity Donation", sourceEvent: "CharityDonation", template: "{user} donated {amount} to charity" },
-          { key: "donation", label: "Donation", sourceEvent: "Donation", template: "{user} donated {amount}" }
-        ]
-      },
-      {
-        id: "tipeeeStream",
-        label: "TipeeeStream",
-        badge: "TS",
-        color: "#FF8A00",
-        logoUrl: "https://www.google.com/s2/favicons?domain=tipeeestream.com&sz=128",
-        supportsAvatar: false,
-        subscribeSource: "tipeeeStream",
-        aliases: ["TipeeeStream", "Tipeee Stream", "tipeeeStream", "tipeeestream"],
-        events: [
-          { key: "donation", label: "Donation", sourceEvent: "Donation", template: "{user} donated {amount}" }
-        ]
-      },
-      {
-        id: "treatStream",
-        label: "TreatStream",
-        badge: "TR",
-        color: "#FF5A7A",
-        logoUrl: "https://www.google.com/s2/favicons?domain=treatstream.com&sz=128",
-        supportsAvatar: false,
-        subscribeSource: "treatStream",
-        aliases: ["TreatStream", "Treat Stream", "treatStream", "treatstream"],
-        events: [
-          { key: "treat", label: "Treat", sourceEvent: "Treat", template: "{user} sent a treat: {title}" }
-        ]
-      }
-    ];
-
-    const hashParams = new URLSearchParams(location.hash.replace(/^#/, ""));
-    const forcePreview = hashParams.get("preview") === "1";
-    const config = mergeConfig(createDefaultConfig(), decodeConfig(hashParams.get("config")) || {});
-    const queue = [];
-    const stage = document.getElementById("stage");
-    const statusBadge = document.getElementById("statusBadge");
-    let active = false;
-    let ws = null;
-    let reconnectTimer = null;
-    let reconnectAttempt = 0;
-    let previewTimer = null;
-    let availableEvents = null;
-    let subscribed = false;
-
-    applyConfig();
-
-    if (forcePreview) {
-      setStatus("Preview mode", "connected");
-      if (config.general.previewEnabled) startPreviewMode();
-    } else {
-      connectWebSocket();
-    }
-
-    window.addEventListener("message", event => {
-      const data = event.data || {};
-      if (data.type === "spn-alert-preview-random") enqueueAlert(makePreviewAlert());
-      if (data.type === "spn-alert-clear") clearQueue();
-      if (data.type === "spn-alert-test") enqueueAlert(makePreviewAlert(data.platformId, data.eventKey));
+    Object.entries(p.events).forEach(([eventType, e]) => {
+      cfg.platforms[key].events[eventType] = { enabled: e.defaultEnabled !== false, template: e.template };
     });
-
-    function createDefaultConfig() {
-      return {
-        v: VERSION,
-        connection: { ...DEFAULT_CONNECTION },
-        general: { ...DEFAULT_GENERAL },
-        platforms: Object.fromEntries(PLATFORM_DEFINITIONS.map(platform => [platform.id, {
-          enabled: true,
-          color: platform.color,
-          showBadge: true,
-          showAvatar: platform.supportsAvatar,
-          soundUrl: "",
-          volume: 70,
-          events: Object.fromEntries(platform.events.map(event => [event.key, {
-            enabled: true,
-            template: event.template
-          }]))
-        }]))
-      };
-    }
-
-    function decodeConfig(value) {
-      if (!value) return null;
-      try {
-        const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
-        const padded = normalized.padEnd(normalized.length + (4 - normalized.length % 4) % 4, "=");
-        return JSON.parse(decodeURIComponent(escape(atob(padded))));
-      } catch (error) {
-        console.warn("Could not parse alert config.", error);
-        return null;
-      }
-    }
-
-    function mergeConfig(target, source) {
-      if (!source || typeof source !== "object") return target;
-      if (source.connection) Object.assign(target.connection, source.connection);
-      if (source.general) Object.assign(target.general, source.general);
-      if (source.platforms) {
-        for (const [platformId, platformSource] of Object.entries(source.platforms)) {
-          if (!target.platforms[platformId]) continue;
-          const targetPlatform = target.platforms[platformId];
-          Object.assign(targetPlatform, platformSource);
-          if (platformSource.events) {
-            targetPlatform.events = targetPlatform.events || {};
-            for (const [eventKey, eventSource] of Object.entries(platformSource.events)) {
-              targetPlatform.events[eventKey] = {
-                ...(targetPlatform.events[eventKey] || {}),
-                ...eventSource
-              };
-            }
-          }
+  });
+  return cfg;
+}
+function mergeConfig(user){
+  const base = defaultConfig();
+  if(!user || typeof user !== 'object') return base;
+  if(user.general && typeof user.general === 'object') Object.assign(base.general, user.general);
+  if(user.platforms && typeof user.platforms === 'object'){
+    Object.keys(base.platforms).forEach(key => {
+      if(user.platforms[key]){
+        const incoming = user.platforms[key];
+        Object.assign(base.platforms[key], incoming);
+        base.platforms[key].events = base.platforms[key].events || {};
+        if(incoming.events){
+          Object.keys(base.platforms[key].events).forEach(ev => {
+            if(incoming.events[ev]) Object.assign(base.platforms[key].events[ev], incoming.events[ev]);
+          });
         }
       }
-      return target;
-    }
+    });
+  }
+  return base;
+}
+function encodeConfig(config){
+  const json = JSON.stringify(config);
+  const utf8 = encodeURIComponent(json).replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode('0x' + p1));
+  return btoa(utf8).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function decodeConfig(raw){
+  if(!raw) return null;
+  try{
+    let s = raw.replace(/-/g,'+').replace(/_/g,'/');
+    while(s.length % 4) s += '=';
+    const binary = atob(s);
+    const json = decodeURIComponent(binary.split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+    return JSON.parse(json);
+  } catch(e){ console.warn('Unable to decode config', e); return null; }
+}
+function labelForEvent(platformKey, eventType){
+  return PLATFORM_DEFS[platformKey]?.events?.[eventType]?.label || eventType;
+}
+function getPlatformKeyFromSource(source){
+  const src = String(source || '').trim();
+  const normalized = src.toLowerCase().replace(/[^a-z0-9]/g,'');
+  return Object.keys(PLATFORM_DEFS).find(key => {
+    const p = PLATFORM_DEFS[key];
+    return p.aliases.some(alias => String(alias).toLowerCase().replace(/[^a-z0-9]/g,'') === normalized) || key === normalized;
+  }) || null;
+}
+function hexToRgb(hex){
+  const clean = String(hex || '#7765ff').replace('#','').trim();
+  const full = clean.length === 3 ? clean.split('').map(c => c+c).join('') : clean;
+  const n = parseInt(full, 16);
+  if(Number.isNaN(n)) return {r:119,g:101,b:255};
+  return {r:(n>>16)&255,g:(n>>8)&255,b:n&255};
+}
+function sanitizeText(value, fallback=''){
+  if(value === undefined || value === null || value === '') return fallback;
+  return String(value).replace(/[<>]/g, '').trim();
+}
+function flattenValues(obj, prefix='', out={}){
+  if(!obj || typeof obj !== 'object') return out;
+  Object.entries(obj).forEach(([k,v]) => {
+    const nk = prefix ? `${prefix}.${k}` : k;
+    if(v && typeof v === 'object' && !Array.isArray(v)) flattenValues(v, nk, out);
+    else out[nk.toLowerCase()] = v;
+  });
+  return out;
+}
+function pick(data, keys, fallback=''){
+  const flat = flattenValues(data || {});
+  for(const key of keys){
+    const needle = String(key).toLowerCase();
+    if(flat[needle] !== undefined && flat[needle] !== null && flat[needle] !== '') return flat[needle];
+  }
+  for(const key of keys){
+    const needle = String(key).toLowerCase();
+    const found = Object.keys(flat).find(k => k.endsWith('.'+needle) || k === needle || k.includes(needle));
+    if(found && flat[found] !== undefined && flat[found] !== null && flat[found] !== '') return flat[found];
+  }
+  return fallback;
+}
+function formatAmount(data){
+  const amount = pick(data, ['amount','formattedAmount','currencyAmount','donationAmount','tipAmount','price','total','value','message.amount','donation.amount'], '');
+  const currency = pick(data, ['currency','currencyCode','currencySymbol'], '');
+  if(amount === '') return 'a';
+  const str = String(amount);
+  if(/[$€£¥]|usd|eur|gbp|cad|aud/i.test(str)) return str;
+  if(currency) return `${currency} ${str}`;
+  return str;
+}
+function profileImageFrom(data){
+  return sanitizeText(pick(data, [
+    'profileImage','profileImageUrl','profilePictureUrl','profileUrl','avatar','avatarUrl','userProfileImage','user.profileImage','user.profileImageUrl','user.avatar','user.avatarUrl','from.profileImageUrl','sender.avatar','broadcasterProfileUrl','broadcastUserProfileImage'
+  ], ''));
+}
+function displayNameFrom(data){
+  return sanitizeText(pick(data, [
+    'displayName','userName','username','user','name','from','fromUser','fromUserName','gifter','gifterName','sender','senderName','subscriber','subscriberName','donor','donorName','viewer','viewerName','login','user.login','user.name','user.displayName','author','author.name','authorName','customerName','customer.name','supporterName','payerName','memberName'
+  ], 'Someone'));
+}
+function replacementMap(data){
+  const months = pick(data, ['months','cumulativeMonths','totalMonths','streakMonths','memberMonths','subscriptionMonths'], '');
+  const count = pick(data, ['count','amount','giftCount','gifts','total','quantity','quantityGifted','tier'], '1');
+  const viewers = pick(data, ['viewers','viewerCount','raiderCount'], '0');
+  const bits = pick(data, ['bits','amount','cheerAmount','quantity'], '0');
+  const reward = pick(data, ['reward','rewardName','rewardTitle','title','redemption.title','reward.title'], 'a reward');
+  const cost = pick(data, ['cost','rewardCost','points','redemption.cost','reward.cost'], '');
+  const recipient = pick(data, ['recipient','recipientName','toUser','toUserName','giftRecipient','giftRecipientName','targetUser','targetUserName'], 'someone');
+  const tier = pick(data, ['tier','subTier','subscriptionTier','plan'], '');
+  const isPrime = !!pick(data, ['isPrime','prime','subPrime'], false) || /prime/i.test(String(tier));
+  return {
+    amount: formatAmount(data),
+    count, months: months || '1', viewers, bits,
+    reward, cost: cost || '', recipient,
+    tier: tier || '', tierText: isPrime ? ' with Prime' : (tier ? ` at ${tier}` : '')
+  };
+}
+function applyTemplate(template, data){
+  const map = replacementMap(data);
+  return sanitizeText(String(template || '').replace(/\{([a-zA-Z0-9_]+)\}/g, (_, key) => map[key] ?? ''));
+}
+function eventSample(platformKey, eventType){
+  const samples = {
+    twitch: { displayName: 'SlickPickleNick', profileImageUrl: '', rewardName:'Hydrate', cost:500, bits:250, cumulativeMonths:42, recipientName:'SlickZayyy', count:10, viewers:37, amount:'$25.00', tier:'Tier 1' },
+    youtube: { displayName: 'SlickPickleNick', profileImageUrl: '', amount:'$10.00', count:5, memberMonths:12 },
+    kick: { displayName: 'AvocadoPilot', profileImageUrl: '', rewardName:'No Vehicles', cost:2500, count:100, months:6, recipientName:'SlickZayyy' },
+    fourthwall: { displayName: 'SupporterNick', amount:'$15.00' },
+    kofi: { displayName: 'CoffeeFan', amount:'$5.00' },
+    pallygg: { displayName: 'CampaignHero', amount:'$20.00' },
+    patreon: { displayName: 'PatronNick', amount:'$8.00' },
+    streamelements: { displayName: 'TipperNick', amount:'$12.00' },
+    streamlabs: { displayName: 'DonorNick', amount:'$30.00' },
+    tipeeestream: { displayName: 'TipeeeFan', amount:'€7.00' },
+    treatstream: { displayName: 'TreatGiver', amount:'1' }
+  };
+  return { ...(samples[platformKey] || samples.twitch), __samplePlatform: platformKey, __sampleEvent: eventType };
+}
 
-    function applyConfig() {
-      stage.className = `position-${config.general.position || "center"}`;
-      document.documentElement.style.setProperty("--scale", String((Number(config.general.scale) || 100) / 100));
-      document.documentElement.style.setProperty("--transition", `${Number(config.general.transitionMs) || 750}ms`);
-      statusBadge.classList.toggle("show", !!config.general.showConnectionStatus || forcePreview);
-    }
 
-    function connectWebSocket() {
-      clearTimeout(reconnectTimer);
-      const { host, port, endpoint } = config.connection;
-      const cleanEndpoint = String(endpoint || "/").startsWith("/") ? endpoint : `/${endpoint}`;
-      const url = `ws://${host || "127.0.0.1"}:${Number(port) || 8080}${cleanEndpoint || "/"}`;
-      setStatus(`Connecting to ${url}`, "");
+const params = new URLSearchParams(location.search);
+let config = mergeConfig(decodeConfig(params.get('config')));
+if(params.has('duration')) config.general.durationMs = Number(params.get('duration')) || config.general.durationMs;
+if(params.has('transition')) config.general.transitionMs = Number(params.get('transition')) || config.general.transitionMs;
+if(params.has('position')) config.general.position = params.get('position') || config.general.position;
+if(params.has('scale')) config.general.scale = Number(params.get('scale')) || config.general.scale;
+if(params.get('debug') === '1') config.general.debug = true;
+if(params.get('mute') === '1') config.general.soundEnabled = false;
 
-      try {
-        ws = new WebSocket(url);
-      } catch (error) {
-        setStatus(`WebSocket error: ${error.message}`, "error");
-        scheduleReconnect();
-        return;
+const stage = document.getElementById('stage');
+const card = document.getElementById('alertCard');
+const mediaWrap = document.getElementById('mediaWrap');
+const media = document.getElementById('media');
+const usernameEl = document.getElementById('username');
+const actionEl = document.getElementById('action');
+const statusEl = document.getElementById('status');
+const audio = document.getElementById('alertAudio');
+let socket = null;
+let queue = [];
+let isPlaying = false;
+let reconnectTimer = null;
+let previewTimer = null;
+
+function setStatus(text){ statusEl.textContent = text; }
+function applySettings(){
+  const g = config.general;
+  const root = document.documentElement.style;
+  root.setProperty('--alert-width', `${Number(g.width) || 750}px`);
+  root.setProperty('--alert-height', `${Number(g.height) || 300}px`);
+  root.setProperty('--radius', `${Number(g.radius) || 34}px`);
+  root.setProperty('--image-size', `${Number(g.imageSize) || 118}px`);
+  root.setProperty('--username-size', `${Number(g.usernameSize) || 44}px`);
+  root.setProperty('--action-size', `${Number(g.actionSize) || 24}px`);
+  root.setProperty('--scale', `${(Number(g.scale) || 100) / 100}`);
+  root.setProperty('--transition-ms', `${Number(g.transitionMs) || 650}ms`);
+  root.setProperty('--gradient-strength', `${Math.max(0, Math.min(100, Number(g.gradientStrength) || 78)) / 100}`);
+  root.setProperty('--card-opacity', `${Math.max(0, Math.min(100, Number(g.cardOpacity) || 92)) / 100}`);
+  root.setProperty('--blur', `${Number(g.blur) || 18}px`);
+  root.setProperty('--font-family', g.fontFamily || 'Inter, Arial, Helvetica, sans-serif');
+  stage.className = `stage ${g.position || 'center'}`;
+  document.body.classList.toggle('debug', !!g.debug);
+}
+function platformEventEnabled(platformKey, eventType){
+  const p = config.platforms[platformKey];
+  if(!p || !p.enabled) return false;
+  if(!PLATFORM_DEFS[platformKey]?.events?.[eventType]) return false;
+  return p.events?.[eventType]?.enabled !== false;
+}
+function subscribePayload(){
+  const events = {};
+  Object.entries(PLATFORM_DEFS).forEach(([key, def]) => {
+    if(!config.platforms[key]?.enabled) return;
+    const enabled = Object.keys(def.events).filter(eventType => config.platforms[key].events?.[eventType]?.enabled !== false);
+    if(enabled.length) events[def.source] = enabled;
+  });
+  return events;
+}
+function connect(){
+  if(params.get('preview') === '1' && params.get('connect') !== '1'){
+    setStatus('Preview mode');
+    return;
+  }
+  try {
+    socket = new WebSocket(config.general.wsUrl || 'ws://127.0.0.1:8080/');
+    setStatus('Connecting to Streamer.bot…');
+    socket.addEventListener('open', () => {
+      setStatus('Connected to Streamer.bot');
+      socket.send(JSON.stringify({ request: 'Subscribe', id: `spn-alerts-${Date.now()}`, events: subscribePayload() }));
+    });
+    socket.addEventListener('message', onSocketMessage);
+    socket.addEventListener('close', () => {
+      setStatus('Streamer.bot disconnected');
+      if(config.general.reconnect) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = setTimeout(connect, 2500);
       }
-
-      ws.addEventListener("open", () => {
-        reconnectAttempt = 0;
-        subscribed = false;
-        setStatus("Connected. Waiting for hello...", "connected");
-      });
-
-      ws.addEventListener("message", async event => {
-        const packet = safeJsonParse(event.data);
-        if (!packet) return;
-
-        if (packet.request === "Hello") {
-          if (packet.authentication && config.connection.password) {
-            const auth = await createAuthentication(config.connection.password, packet.authentication.salt, packet.authentication.challenge);
-            sendRequest("Authenticate", { authentication: auth }, "spn-auth");
-            setStatus("Authenticating...", "connected");
-          } else {
-            requestAvailableEvents();
-          }
-          return;
-        }
-
-        if (packet.id === "spn-auth" && packet.status === "ok") {
-          requestAvailableEvents();
-          return;
-        }
-
-        if (packet.id === "spn-get-events" && packet.status === "ok") {
-          availableEvents = packet.events || null;
-          subscribeToEnabledEvents();
-          return;
-        }
-
-        if (packet.id === "spn-subscribe" && packet.status === "ok") {
-          subscribed = true;
-          setStatus("Subscribed to enabled alert events", "connected");
-          return;
-        }
-
-        if (packet.status === "error") {
-          setStatus(`Streamer.bot error: ${packet.error || packet.message || "Unknown error"}`, "error");
-          return;
-        }
-
-        if (packet.event) handleStreamerbotEvent(packet);
-      });
-
-      ws.addEventListener("close", () => {
-        setStatus("Disconnected from Streamer.bot", "error");
-        scheduleReconnect();
-      });
-
-      ws.addEventListener("error", () => {
-        setStatus("WebSocket connection error", "error");
-      });
+    });
+    socket.addEventListener('error', () => setStatus('Streamer.bot connection error'));
+  } catch(err) {
+    setStatus('WebSocket setup failed');
+    if(config.general.reconnect) reconnectTimer = setTimeout(connect, 2500);
+  }
+}
+function onSocketMessage(message){
+  let packet;
+  try { packet = JSON.parse(message.data); } catch(e) { return; }
+  if(!packet || !packet.event) return;
+  const platformKey = getPlatformKeyFromSource(packet.event.source);
+  const eventType = packet.event.type;
+  if(!platformKey || !platformEventEnabled(platformKey, eventType)) return;
+  const alert = normalizeAlert(platformKey, eventType, packet.data || {});
+  enqueue(alert);
+}
+function normalizeAlert(platformKey, eventType, data){
+  const pconf = config.platforms[platformKey] || {};
+  const def = PLATFORM_DEFS[platformKey];
+  const evConf = pconf.events?.[eventType] || {};
+  const profile = def.profileEligible && pconf.useProfileImage !== false ? profileImageFrom(data) : '';
+  const logo = pconf.logo || def.logo;
+  const color = pconf.color || def.defaultColor;
+  return {
+    platformKey, eventType,
+    username: displayNameFrom(data),
+    action: applyTemplate(evConf.template || def.events[eventType]?.template || 'triggered an alert!', data),
+    color,
+    image: profile || logo,
+    imageIsLogo: !profile,
+    soundUrl: (config.general.soundMode === 'platform' && pconf.soundUrl) ? pconf.soundUrl : config.general.soundUrl,
+    volume: (config.general.soundMode === 'platform' && pconf.soundUrl) ? Number(pconf.soundVolume ?? config.general.soundVolume) : Number(config.general.soundVolume),
+    raw: data
+  };
+}
+function enqueue(alert){
+  queue.push(alert);
+  if(!isPlaying) playNext();
+}
+function setPlatformColor(color){
+  const rgb = hexToRgb(color);
+  document.documentElement.style.setProperty('--pc-r', rgb.r);
+  document.documentElement.style.setProperty('--pc-g', rgb.g);
+  document.documentElement.style.setProperty('--pc-b', rgb.b);
+}
+function renderAlert(alert){
+  setPlatformColor(alert.color);
+  usernameEl.textContent = config.general.uppercaseUsername ? sanitizeText(alert.username, 'SOMEONE').toUpperCase() : sanitizeText(alert.username, 'Someone');
+  actionEl.textContent = sanitizeText(alert.action, 'triggered an alert!');
+  mediaWrap.classList.toggle('logo', !!alert.imageIsLogo);
+  media.alt = alert.imageIsLogo ? `${PLATFORM_DEFS[alert.platformKey].label} logo` : `${alert.username} profile image`;
+  media.onerror = () => {
+    if(media.src.indexOf(PLATFORM_DEFS[alert.platformKey].logo) === -1) {
+      mediaWrap.classList.add('logo');
+      media.src = PLATFORM_DEFS[alert.platformKey].logo;
     }
-
-    function scheduleReconnect() {
-      if (forcePreview) return;
-      clearTimeout(reconnectTimer);
-      const delay = Math.min(30000, 1500 * Math.max(1, ++reconnectAttempt));
-      reconnectTimer = setTimeout(connectWebSocket, delay);
-    }
-
-    function requestAvailableEvents() {
-      sendRequest("GetEvents", {}, "spn-get-events");
-      setTimeout(() => {
-        if (!subscribed) subscribeToEnabledEvents();
-      }, 1500);
-    }
-
-    function subscribeToEnabledEvents() {
-      if (!ws || ws.readyState !== WebSocket.OPEN) return;
-      const events = buildSubscriptionEvents();
-      if (!Object.keys(events).length) {
-        setStatus("No alert events are enabled", "error");
-        return;
-      }
-      ws.send(JSON.stringify({ request: "Subscribe", id: "spn-subscribe", events }));
-      setStatus("Subscribing to alert events...", "connected");
-    }
-
-    function buildSubscriptionEvents() {
-      const output = {};
-      PLATFORM_DEFINITIONS.forEach(platformDef => {
-        const platformState = config.platforms[platformDef.id];
-        if (!platformState?.enabled) return;
-        const source = resolveSubscriptionSource(platformDef);
-        const eventNames = new Set();
-        platformDef.events.forEach(eventDef => {
-          const eventState = platformState.events?.[eventDef.key];
-          if (eventState?.enabled) eventNames.add(eventDef.sourceEvent);
-        });
-        if (eventNames.size) output[source] = [...eventNames];
-      });
-      return output;
-    }
-
-    function resolveSubscriptionSource(platformDef) {
-      if (!availableEvents) return platformDef.subscribeSource;
-      const keys = Object.keys(availableEvents);
-      const aliases = [platformDef.subscribeSource, platformDef.id, platformDef.label, ...(platformDef.aliases || [])];
-      const normalizedAliases = aliases.map(normalizeToken);
-      return keys.find(key => normalizedAliases.includes(normalizeToken(key))) || platformDef.subscribeSource;
-    }
-
-    function sendRequest(request, payload = {}, id = `spn-${Date.now()}`) {
-      if (!ws || ws.readyState !== WebSocket.OPEN) return;
-      ws.send(JSON.stringify({ request, id, ...payload }));
-    }
-
-    async function createAuthentication(password, salt, challenge) {
-      const secret = await sha256Base64(password + salt);
-      return sha256Base64(secret + challenge);
-    }
-
-    async function sha256Base64(value) {
-      const bytes = new TextEncoder().encode(value);
-      const hash = await crypto.subtle.digest("SHA-256", bytes);
-      return btoa(String.fromCharCode(...new Uint8Array(hash)));
-    }
-
-    function handleStreamerbotEvent(packet) {
-      const source = packet.event?.source || packet.source;
-      const type = packet.event?.type || packet.type;
-      const platformDef = findPlatformBySource(source);
-      if (!platformDef) return;
-
-      const platformState = config.platforms[platformDef.id];
-      if (!platformState?.enabled) return;
-
-      const eventKey = resolveEventKey(platformDef, type, packet.data || {});
-      const eventDef = platformDef.events.find(event => event.key === eventKey);
-      if (!eventDef) return;
-
-      const eventState = platformState.events?.[eventDef.key];
-      if (!eventState?.enabled) return;
-
-      enqueueAlert(buildAlert(platformDef, eventDef, packet.data || {}));
-    }
-
-    function findPlatformBySource(source) {
-      const normalized = normalizeToken(source || "");
-      return PLATFORM_DEFINITIONS.find(platform => [platform.id, platform.label, platform.subscribeSource, ...(platform.aliases || [])].map(normalizeToken).includes(normalized));
-    }
-
-    function resolveEventKey(platformDef, type, data) {
-      if (platformDef.id === "twitch" && type === "Sub") {
-        const primeText = String(pick(data, ["isPrime", "prime", "subType", "subscriptionType", "tier", "subTier", "planName"]) || "").toLowerCase();
-        if (primeText === "true" || primeText.includes("prime")) return "primeSub";
-        return "newSub";
-      }
-      return platformDef.events.find(event => event.sourceEvent === type)?.key;
-    }
-
-    function buildAlert(platformDef, eventDef, data) {
-      const platformState = config.platforms[platformDef.id];
-      const eventState = platformState.events?.[eventDef.key] || {};
-      const values = buildValues(platformDef, eventDef, data);
-      const renderedTemplate = formatTemplate(eventState.template || eventDef.template, values) || eventDef.label;
-      const action = makeActionLine(renderedTemplate, values.user);
-      const detail = makeDetail(eventDef, values, action);
-      const showAvatar = !!(platformDef.supportsAvatar && platformState.showAvatar && values.avatar);
-
-      return {
-        platformId: platformDef.id,
-        platformLabel: platformDef.label,
-        badge: platformDef.badge,
-        logoUrl: platformDef.logoUrl || "",
-        color: platformState.color || platformDef.color,
-        eventLabel: eventDef.label,
-        headline: values.user || "Someone",
-        action,
-        detail,
-        avatar: showAvatar ? values.avatar : "",
-        showAvatar,
-        showBadge: !!(config.general.showBadge && platformState.showBadge),
-        soundUrl: platformState.soundUrl || config.general.soundUrl,
-        volume: Number.isFinite(Number(platformState.volume)) ? Number(platformState.volume) : Number(config.general.volume || 70)
-      };
-    }
-
-    function buildValues(platformDef, eventDef, data) {
-      const user = pick(data, [
-        "user.displayName", "user.name", "user.userName", "user.username", "user.login", "user",
-        "sender.displayName", "sender.name", "from.displayName", "from.name",
-        "donor.name", "supporter.name", "member.name", "patron.full_name",
-        "displayName", "userName", "username", "login", "name", "authorName", "viewerName"
-      ]);
-      const recipient = pick(data, [
-        "recipient.displayName", "recipient.name", "recipient.username", "giftRecipient.displayName", "giftRecipient.name",
-        "giftRecipientName", "recipientName", "to.name", "to.displayName"
-      ]);
-      const title = pick(data, [
-        "reward.title", "reward.name", "rewardTitle", "rewardName", "title", "name", "item.name", "itemName",
-        "product.name", "productName", "tier.name", "tierName", "campaign.name", "campaignName", "type"
-      ]);
-      const amount = extractAmount(eventDef, data);
-      const tier = pick(data, ["tier", "subTier", "subscriptionTier", "membershipLevel", "levelName", "plan", "planName"]) || "Tier 1";
-      const months = pick(data, ["months", "cumulativeMonths", "streakMonths", "duration", "totalMonths"]) || "1";
-      const message = pick(data, ["message", "comment", "note", "text", "userInput", "input", "superChat.message", "data.message"]);
-      const avatar = pick(data, [
-        "user.profileImageUrl", "user.profileImage", "user.profilePicture", "user.profileUrl", "user.avatar", "user.avatarUrl",
-        "author.profileImageUrl", "author.profileImage", "author.profilePicture", "author.photoUrl", "author.avatar", "author.avatarUrl",
-        "profileImageUrl", "profileImage", "profilePicture", "profilePhoto", "photoUrl", "photo", "avatar", "avatarUrl",
-        "sender.profileImageUrl", "sender.profileImage", "sender.profilePicture", "sender.avatar", "sender.avatarUrl",
-        "channel.profileImageUrl", "channel.avatar", "kickUser.profilepic", "kickUser.profilePicture"
-      ]);
-
-      return {
-        user: stringifyValue(user) || "Someone",
-        recipient: stringifyValue(recipient) || "the community",
-        title: stringifyValue(title) || eventDef.label,
-        amount: stringifyValue(amount) || "",
-        tier: stringifyValue(tier),
-        months: stringifyValue(months),
-        message: stringifyValue(message),
-        avatar: stringifyValue(avatar)
-      };
-    }
-
-    function extractAmount(eventDef, data) {
-      if (eventDef.sourceEvent === "Cheer") return pick(data, ["bits", "amount", "totalBits"]);
-      if (["Raid"].includes(eventDef.sourceEvent)) return pick(data, ["viewers", "viewerCount", "raiders", "amount", "count"]);
-      if (["GiftBomb", "MassGiftSubscription", "MembershipGift", "JewelsGifted", "sGifted"].includes(eventDef.sourceEvent)) return pick(data, ["count", "amount", "quantity", "total", "giftCount", "numberOfGifts"]);
-      if (["RewardRedemption"].includes(eventDef.sourceEvent)) return pick(data, ["reward.cost", "cost", "points", "amount"]);
-
-      const formatted = pick(data, ["formattedAmount", "amountFormatted", "displayAmount", "amountDisplay", "formatted", "valueFormatted"]);
-      if (formatted) return formatted;
-
-      const amount = pick(data, ["amount", "value", "total", "price", "donation.amount", "tip.amount", "pledge.amount"]);
-      const currency = pick(data, ["currency", "currencyCode", "currency_code", "donation.currency", "tip.currency"]);
-      return formatCurrency(amount, currency);
-    }
-
-    function formatCurrency(amount, currency) {
-      if (amount === undefined || amount === null || amount === "") return "";
-      const number = Number(String(amount).replace(/[^0-9.-]/g, ""));
-      const currencyText = stringifyValue(currency);
-      if (Number.isFinite(number) && currencyText && /^[A-Z]{3}$/i.test(currencyText)) {
-        try {
-          return new Intl.NumberFormat(undefined, { style: "currency", currency: currencyText.toUpperCase() }).format(number);
-        } catch {}
-      }
-      if (currencyText && !String(amount).includes(currencyText)) return `${currencyText} ${amount}`;
-      return String(amount);
-    }
-
-    function makeDetail(eventDef, values, actionText = "") {
-      const actionLower = String(actionText || "").toLowerCase();
-      if (values.message && !actionLower.includes(String(values.message).toLowerCase())) return values.message;
-      const parts = [];
-      if (values.amount && !actionLower.includes(String(values.amount).toLowerCase())) parts.push(values.amount);
-      if (values.title && values.title !== eventDef.label && !actionLower.includes(String(values.title).toLowerCase())) parts.push(values.title);
-      return [...new Set(parts)].join(" · ");
-    }
-
-    function makeActionLine(renderedTemplate, user) {
-      let action = String(renderedTemplate || "").trim();
-      const username = String(user || "").trim();
-      if (username) {
-        action = action.replace(new RegExp(`^\\s*@?${escapeRegExp(username)}\\b`, "i"), "");
-      }
-      action = action
-        .replace(/^[\s:·,|\-–—]+/, "")
-        .replace(/^(has|have|just)?\s*$/i, "")
-        .trim();
-      return action || "triggered an alert";
-    }
-
-    function formatTemplate(template, values) {
-      return String(template || "")
-        .replace(/\{(user|recipient|title|amount|tier|months|message)\}/g, (_, key) => values[key] || "")
-        .replace(/\s+/g, " ")
-        .replace(/\s+([,.:;!?])/g, "$1")
-        .trim();
-    }
-
-    function enqueueAlert(alert) {
-      if (!alert) return;
-      queue.push(alert);
-      if (!active) processQueue();
-    }
-
-    function clearQueue() {
-      queue.length = 0;
-      stage.innerHTML = "";
-      active = false;
-      setStatus(forcePreview ? "Preview queue cleared" : "Alert queue cleared", "connected");
-    }
-
-    async function processQueue() {
-      if (!queue.length) {
-        active = false;
-        return;
-      }
-      active = true;
-      const alert = queue.shift();
-      renderAlert(alert);
-      playSound(alert);
-
-      const duration = Number(config.general.durationMs) || 8000;
-      const transition = Number(config.general.transitionMs) || 750;
-      await wait(duration);
-      const card = stage.querySelector(".alert-card");
-      card?.classList.remove("show");
-      await wait(Math.max(transition, 120));
-      stage.innerHTML = "";
-      await wait(Math.max(transition, 0));
-      processQueue();
-    }
-
-    function renderAlert(alert) {
-      stage.innerHTML = "";
-      stage.classList.remove("empty-media");
-      const card = document.createElement("article");
-      card.className = "alert-card";
-      card.style.setProperty("--alert-color", alert.color || "#7869ff");
-
-      const media = document.createElement("div");
-      media.className = "media";
-
-      if (alert.showAvatar) {
-        const img = document.createElement("img");
-        img.className = "avatar";
-        img.src = alert.avatar;
-        img.alt = `${alert.platformLabel} profile image`;
-        img.referrerPolicy = "no-referrer";
-        img.onerror = () => img.replaceWith(makeBadge(alert));
-        media.appendChild(img);
-        if (alert.showBadge) media.appendChild(makePlatformChip(alert));
-      } else {
-        media.appendChild(makeBadge(alert));
-      }
-
-      const content = document.createElement("div");
-      content.className = "content";
-      content.innerHTML = `
-        <div class="headline">${escapeHtml(alert.headline)}</div>
-        <div class="action">${escapeHtml(alert.action)}</div>
-        ${alert.detail ? `<div class="detail">${escapeHtml(alert.detail)}</div>` : ""}
-      `;
-
-      card.append(media, content);
-      stage.appendChild(card);
-      requestAnimationFrame(() => card.classList.add("show"));
-    }
-
-    function makeBadge(alert) {
-      const badge = document.createElement("div");
-      badge.className = "platform-badge";
-      if (alert.logoUrl) {
-        const logo = document.createElement("img");
-        logo.src = alert.logoUrl;
-        logo.alt = `${alert.platformLabel} logo`;
-        logo.referrerPolicy = "no-referrer";
-        logo.onerror = () => {
-          badge.textContent = alert.badge || alert.platformLabel.slice(0, 2);
-        };
-        badge.appendChild(logo);
-      } else {
-        badge.textContent = alert.badge || alert.platformLabel.slice(0, 2);
-      }
-      return badge;
-    }
-
-    function makePlatformChip(alert) {
-      const chip = document.createElement("div");
-      chip.className = "platform-chip";
-      chip.textContent = alert.badge;
-      return chip;
-    }
-
-    function playSound(alert) {
-      if (!alert.soundUrl) return;
-      try {
-        const audio = new Audio(alert.soundUrl);
-        audio.volume = Math.max(0, Math.min(1, Number(alert.volume || config.general.volume || 70) / 100));
-        audio.play().catch(() => {});
-      } catch {}
-    }
-
-    function startPreviewMode() {
-      clearInterval(previewTimer);
-      const frequency = Math.max(2000, Number(config.general.previewFrequencyMs) || 7000);
-      setTimeout(() => enqueueAlert(makePreviewAlert()), 500);
-      previewTimer = setInterval(() => enqueueAlert(makePreviewAlert()), frequency);
-    }
-
-    function makePreviewAlert(platformId = null, eventKey = null) {
-      const enabledPlatformDefs = PLATFORM_DEFINITIONS.filter(platform => {
-        const platformState = config.platforms[platform.id];
-        return platformState?.enabled && (!platformId || platform.id === platformId);
-      });
-      const platformDef = sample(enabledPlatformDefs) || PLATFORM_DEFINITIONS[0];
-      const platformState = config.platforms[platformDef.id];
-      const enabledEvents = platformDef.events.filter(event => {
-        const eventState = platformState.events?.[event.key];
-        return eventState?.enabled && (!eventKey || event.key === eventKey);
-      });
-      const eventDef = sample(enabledEvents) || platformDef.events[0];
-      const data = makeFakeData(platformDef, eventDef);
-      return buildAlert(platformDef, eventDef, data);
-    }
-
-    function makeFakeData(platformDef, eventDef) {
-      const names = ["PickleFan42", "AvocadoPilot", "StreamGoblin", "PixelPanda", "RaidCaptain", "LaglessLarry", "ModModeMia"];
-      const user = sample(names);
-      const avatarAllowed = platformDef.supportsAvatar;
-      const base = {
-        username: user,
-        displayName: user,
-        user: {
-          displayName: user,
-          name: user,
-          profileImageUrl: avatarAllowed ? `https://api.dicebear.com/9.x/bottts-neutral/svg?seed=${encodeURIComponent(user)}` : ""
-        },
-        recipientName: sample(names.filter(name => name !== user)),
-        message: sample(["Thanks for the stream!", "This alert is looking clean.", "One more round.", "Hydrate check.", ""]),
-        currency: "USD",
-        amount: sample([5, 10, 15, 25, 50])
-      };
-
-      const extra = {
-        Follow: {},
-        RewardRedemption: { reward: { title: sample(["Hydrate", "No Vehicles", "Posture Check", "Choose the Drop"]), cost: sample([500, 1000, 2500, 5000]) } },
-        Cheer: { bits: sample([100, 250, 500, 1000]) },
-        Sub: { tier: sample(["Tier 1", "Tier 2", "Prime"]), isPrime: eventDef.key === "primeSub" },
-        ReSub: { months: sample([2, 6, 12, 24]) },
-        GiftSub: { recipient: { displayName: base.recipientName } },
-        GiftBomb: { count: sample([5, 10, 20]) },
-        Raid: { viewers: sample([8, 17, 34, 72]) },
-        CharityDonation: { amount: sample([10, 25, 50]), currency: "USD" },
-        NewSubscriber: {},
-        JewelsGifted: { amount: sample([50, 100, 250]) },
-        SuperChat: { amount: sample([4.99, 9.99, 19.99]), currency: "USD" },
-        SuperSticker: { amount: sample([1.99, 4.99, 9.99]), currency: "USD" },
-        MembershipGift: { count: sample([1, 5, 10]) },
-        MemberMileStone: { months: sample([2, 6, 12]) },
-        NewSponsor: {},
-        GiftSubscription: { recipient: { displayName: base.recipientName } },
-        MassGiftSubscription: { count: sample([5, 10, 25]) },
-        Resubscription: { months: sample([2, 5, 11]) },
-        Subscription: {},
-        Donation: { amount: sample([5, 10, 20]), currency: "USD" },
-        GiftPurchase: { item: { name: "Gift Item" } },
-        OrderPlaced: { productName: sample(["Sticker Pack", "Creator Tee", "Mug"]), amount: sample([18, 24, 32]), currency: "USD" },
-        SubscriptionPurchased: { tierName: sample(["Monthly Supporter", "VIP Supporter"]) },
-        Commission: { title: sample(["Custom Graphic", "Emote Pack", "Overlay Edit"]) },
-        ShopOrder: { productName: sample(["Ko-Fi Print", "Digital Download"]) },
-        CampaignTip: { amount: sample([7, 14, 28]), currency: "USD", campaignName: "Community Goal" },
-        FollowCreated: {},
-        PledgeCreated: { amount: sample([3, 5, 10]), currency: "USD" },
-        PledgeUpdated: { amount: sample([5, 12, 20]), currency: "USD" },
-        Tip: { amount: sample([3, 7, 11]), currency: "USD" },
-        Treat: { type: sample(["Pizza", "Coffee", "Snack"]), message: "Treat incoming." },
-        sGifted: { amount: sample([100, 250, 500]) }
-      };
-
-      return { ...base, ...(extra[eventDef.sourceEvent] || {}) };
-    }
-
-    function pick(obj, paths) {
-      for (const path of paths) {
-        const value = getPath(obj, path);
-        if (value !== undefined && value !== null && value !== "") return value;
-      }
-      return undefined;
-    }
-
-    function getPath(obj, path) {
-      if (!obj || !path) return undefined;
-      return String(path).split(".").reduce((current, key) => {
-        if (current === undefined || current === null) return undefined;
-        return current[key];
-      }, obj);
-    }
-
-    function stringifyValue(value) {
-      if (value === undefined || value === null) return "";
-      if (typeof value === "object") {
-        return value.displayName || value.userName || value.username || value.name || value.title || value.label || "";
-      }
-      return String(value);
-    }
-
-    function sample(array) {
-      if (!array || !array.length) return undefined;
-      return array[Math.floor(Math.random() * array.length)];
-    }
-
-    function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-
-    function safeJsonParse(value) {
-      try { return JSON.parse(value); }
-      catch { return null; }
-    }
-
-    function normalizeToken(value) {
-      return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-    }
-
-    function setStatus(message, type = "") {
-      statusBadge.textContent = message;
-      statusBadge.classList.toggle("connected", type === "connected");
-      statusBadge.classList.toggle("error", type === "error");
-      statusBadge.classList.toggle("show", !!config.general.showConnectionStatus || forcePreview);
-    }
-
-    function escapeRegExp(value) {
-      return String(value ?? "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    }
-
-    function escapeHtml(value) {
-      return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
-  </script>
+  };
+  media.src = alert.image || PLATFORM_DEFS[alert.platformKey].logo;
+}
+function playSound(alert){
+  if(!config.general.soundEnabled || params.get('mute') === '1') return;
+  const url = alert.soundUrl || config.general.soundUrl;
+  if(!url) return;
+  try {
+    audio.pause();
+    audio.src = url;
+    audio.currentTime = 0;
+    audio.volume = Math.max(0, Math.min(1, (Number(alert.volume) || 70) / 100));
+    const p = audio.play();
+    if(p && typeof p.catch === 'function') p.catch(() => {});
+  } catch(e) {}
+}
+function playNext(){
+  if(queue.length === 0) { isPlaying = false; return; }
+  isPlaying = true;
+  const alert = queue.shift();
+  renderAlert(alert);
+  playSound(alert);
+  card.classList.remove('is-leaving');
+  requestAnimationFrame(() => {
+    card.classList.add('is-visible');
+  });
+  setTimeout(() => {
+    card.classList.add('is-leaving');
+    card.classList.remove('is-visible');
+    setTimeout(() => {
+      card.classList.remove('is-leaving');
+      setTimeout(playNext, Number(config.general.betweenMs) || 0);
+    }, Number(config.general.transitionMs) || 650);
+  }, Number(config.general.durationMs) || 7000);
+}
+function randomEnabledEvent(){
+  const available = [];
+  Object.entries(PLATFORM_DEFS).forEach(([platformKey, p]) => {
+    if(!config.platforms[platformKey]?.enabled) return;
+    Object.keys(p.events).forEach(eventType => { if(platformEventEnabled(platformKey, eventType)) available.push([platformKey, eventType]); });
+  });
+  if(!available.length) return null;
+  return available[Math.floor(Math.random() * available.length)];
+}
+function triggerSample(platformKey, eventType){
+  if(!platformKey || !eventType) {
+    const picked = randomEnabledEvent();
+    if(!picked) return;
+    [platformKey, eventType] = picked;
+  }
+  enqueue(normalizeAlert(platformKey, eventType, eventSample(platformKey, eventType)));
+}
+window.addEventListener('message', (event) => {
+  const msg = event.data || {};
+  if(msg.type === 'SPN_ALERT_CONFIG' && msg.config) { config = mergeConfig(msg.config); applySettings(); }
+  if(msg.type === 'SPN_TEST_ALERT') triggerSample(msg.platformKey, msg.eventType);
+  if(msg.type === 'SPN_CLEAR_QUEUE') { queue = []; }
+});
+window.SPNAlerts = { triggerSample, enqueue, config };
+applySettings();
+connect();
+if(params.get('demo') === '1') setTimeout(() => triggerSample(), 650);
+if(params.get('previewAuto') === '1') {
+  const ms = Math.max(3000, Number(config.general.randomPreviewSeconds || 8) * 1000);
+  setTimeout(() => triggerSample(), 650);
+  previewTimer = setInterval(() => triggerSample(), ms);
+}
+</script>
 </body>
 </html>
