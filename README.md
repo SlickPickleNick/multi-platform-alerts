@@ -1,6 +1,6 @@
 # SlickPickleNick Multiplatform Alerts
 
-Version: `v0.1.0`
+Version: `v0.1.1`
 
 A GitHub Pages-hosted browser source alert system for Streamer.bot WebSocket events.
 
@@ -30,7 +30,12 @@ multiplatform-alerts/
 - Supports global alert duration and transition delay.
 - Supports global sound and optional per-platform sound override.
 - Supports platform-specific default colors with user color overrides.
-- Supports optional platform badges.
+- Uses the alert trigger username as the large headline.
+- Uses the event action as smaller supporting text below the username.
+- Removes platform/event tag labels from the visible alert card.
+- Uses Twitch, YouTube, and Kick profile images when Streamer.bot provides them.
+- Falls back to platform logos when profile images are unavailable or unsupported.
+- Supports an optional platform chip on profile images.
 - Supports optional profile images for Twitch, YouTube, and Kick only.
 - Includes randomized preview/test mode in the dashboard.
 
@@ -168,7 +173,7 @@ Use the **Control Deck** to configure:
 - Global sound URL
 - Global volume
 - Platform colors
-- Platform badge visibility
+- Platform chip visibility on profile images
 - Twitch / YouTube / Kick profile image visibility
 - Per-platform sound overrides
 - Per-platform volume
@@ -232,9 +237,9 @@ Profile image support is only included for:
 - YouTube
 - Kick
 
-Other supported platforms do not include profile-image controls in the dashboard and will use the platform badge layout.
+Other supported platforms do not include profile-image controls in the dashboard and will use the platform logo layout.
 
-Profile images are shown only when Streamer.bot includes a usable image URL in the event payload.
+Profile images are shown only when Streamer.bot includes a usable image URL in the event payload. If the image URL is missing or fails to load, the overlay falls back to the platform logo.
 
 ---
 
@@ -259,6 +264,8 @@ Example:
 ```text
 {user} redeemed {title} for {amount} points
 ```
+
+The alert card displays `{user}` as the large headline and moves the remaining event text below it. For example, `{user} resubscribed for {months} months` displays the username as the headline and `resubscribed for 42 months` as the action line.
 
 If a placeholder is unavailable from the event payload, the overlay will leave that value blank or use a safe fallback.
 
@@ -318,6 +325,18 @@ Check:
 ---
 
 ## Version Notes
+
+### v0.1.1
+
+Layout and preview revision.
+
+Includes:
+
+- Large username headline with smaller event action text.
+- Removed platform/event tags from the alert card.
+- Profile image fallback to platform logos.
+- Platform logo support for non-profile-image platforms.
+- Preview refresh improvements when settings change.
 
 ### v0.1.0
 
