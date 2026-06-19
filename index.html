@@ -539,7 +539,7 @@
           <h2>Alert Builder</h2>
           <p>Settings are encoded into the OBS browser source link. The live overlay subscribes directly to Streamer.bot events and does not require event-specific subactions.</p>
         </div>
-        <div class="version-pill">v0.1.0</div>
+        <div class="version-pill">v0.1.1</div>
       </header>
 
       <section class="preview-wrap">
@@ -556,7 +556,7 @@
             <button class="btn" id="randomPreviewBtn" type="button">Trigger Random Alert</button>
             <button class="btn" id="clearPreviewBtn" type="button">Clear Queue</button>
           </div>
-          <p class="note">Profile image controls are only available for Twitch, YouTube, and Kick. Other platforms use platform badges only.</p>
+          <p class="note">Profile image controls are only available for Twitch, YouTube, and Kick. Other platforms use platform logos only.</p>
         </section>
       </section>
     </section>
@@ -565,7 +565,7 @@
   <div class="toast" id="toast" role="status" aria-live="polite">Copied</div>
 
   <script>
-    const VERSION = "0.1.0";
+    const VERSION = "0.1.1";
 
     const DEFAULT_GENERAL = {
       durationMs: 8000,
@@ -593,6 +593,7 @@
         label: "Twitch",
         badge: "TW",
         color: "#9146FF",
+        logoUrl: "https://cdn.simpleicons.org/twitch/ffffff",
         supportsAvatar: true,
         subscribeSource: "twitch",
         events: [
@@ -613,6 +614,7 @@
         label: "YouTube",
         badge: "YT",
         color: "#CD201F",
+        logoUrl: "https://cdn.simpleicons.org/youtube/ffffff",
         supportsAvatar: true,
         subscribeSource: "youTube",
         events: [
@@ -630,6 +632,7 @@
         label: "Kick",
         badge: "K",
         color: "#00E701",
+        logoUrl: "https://cdn.simpleicons.org/kick/ffffff",
         supportsAvatar: true,
         subscribeSource: "kick",
         events: [
@@ -647,6 +650,7 @@
         label: "Fourthwall",
         badge: "FW",
         color: "#FFFFFF",
+        logoUrl: "https://www.google.com/s2/favicons?domain=fourthwall.com&sz=128",
         supportsAvatar: false,
         subscribeSource: "fourthwall",
         events: [
@@ -661,6 +665,7 @@
         label: "Ko-Fi",
         badge: "KF",
         color: "#29ABE0",
+        logoUrl: "https://cdn.simpleicons.org/kofi/ffffff",
         supportsAvatar: false,
         subscribeSource: "kofi",
         events: [
@@ -676,6 +681,7 @@
         label: "Pally.gg",
         badge: "PG",
         color: "#7869FF",
+        logoUrl: "https://www.google.com/s2/favicons?domain=pally.gg&sz=128",
         supportsAvatar: false,
         subscribeSource: "pallygg",
         events: [
@@ -687,6 +693,7 @@
         label: "Patreon",
         badge: "PT",
         color: "#FF424D",
+        logoUrl: "https://cdn.simpleicons.org/patreon/ffffff",
         supportsAvatar: false,
         subscribeSource: "patreon",
         events: [
@@ -700,6 +707,7 @@
         label: "StreamElements",
         badge: "SE",
         color: "#1000FF",
+        logoUrl: "https://cdn.simpleicons.org/streamelements/ffffff",
         supportsAvatar: false,
         subscribeSource: "streamElements",
         events: [
@@ -711,6 +719,7 @@
         label: "Streamlabs",
         badge: "SL",
         color: "#80F5D2",
+        logoUrl: "https://cdn.simpleicons.org/streamlabs/ffffff",
         supportsAvatar: false,
         subscribeSource: "streamlabs",
         events: [
@@ -723,6 +732,7 @@
         label: "TipeeeStream",
         badge: "TS",
         color: "#FF8A00",
+        logoUrl: "https://www.google.com/s2/favicons?domain=tipeeestream.com&sz=128",
         supportsAvatar: false,
         subscribeSource: "tipeeeStream",
         events: [
@@ -734,6 +744,7 @@
         label: "TreatStream",
         badge: "TR",
         color: "#FF5A7A",
+        logoUrl: "https://www.google.com/s2/favicons?domain=treatstream.com&sz=128",
         supportsAvatar: false,
         subscribeSource: "treatStream",
         events: [
@@ -749,7 +760,7 @@
     let previewUpdateTimer = null;
 
     function createInitialState() {
-      const saved = safeJsonParse(localStorage.getItem("spnMultiAlertsV010"));
+      const saved = safeJsonParse(localStorage.getItem("spnMultiAlertsV011")) || safeJsonParse(localStorage.getItem("spnMultiAlertsV010"));
       const base = {
         version: VERSION,
         connection: { ...DEFAULT_CONNECTION },
@@ -800,7 +811,7 @@
         ),
         makeTextControl("Global Sound URL", state.general.soundUrl, value => state.general.soundUrl = value, "https://.../alert.mp3"),
         makeRangeControl("Global Volume", state.general.volume, value => state.general.volume = Number(value), 0, 100, "%"),
-        makeCheckboxControl("Show Platform Badge by Default", state.general.showBadge, checked => state.general.showBadge = checked),
+        makeCheckboxControl("Show Platform Chip by Default", state.general.showBadge, checked => state.general.showBadge = checked),
         makeCheckboxControl("Show Connection Status Badge", state.general.showConnectionStatus, checked => state.general.showConnectionStatus = checked),
         makeCheckboxControl("Dashboard Preview Mode", state.general.previewEnabled, checked => state.general.previewEnabled = checked),
         makeNumberControl("Preview Frequency", msToSeconds(state.general.previewFrequencyMs), value => state.general.previewFrequencyMs = secondsToMs(value), 2, 60, 0.5, "seconds")
@@ -818,13 +829,15 @@
       body.append(
         makeCheckboxControl(`Enable ${platformDef.label}`, platformState.enabled, checked => platformState.enabled = checked),
         makeColorControl("Platform Color", platformState.color, value => platformState.color = value),
-        makeCheckboxControl("Show Platform Badge", platformState.showBadge, checked => platformState.showBadge = checked),
         makeTextControl("Platform Sound Override", platformState.soundUrl, value => platformState.soundUrl = value, "Leave blank to use global sound"),
         makeRangeControl("Platform Volume", platformState.volume, value => platformState.volume = Number(value), 0, 100, "%")
       );
 
       if (platformDef.supportsAvatar) {
-        body.appendChild(makeCheckboxControl("Show Profile Image When Available", platformState.showAvatar, checked => platformState.showAvatar = checked));
+        body.append(
+          makeCheckboxControl("Show Platform Chip on Profile Image", platformState.showBadge, checked => platformState.showBadge = checked),
+          makeCheckboxControl("Show Profile Image When Available", platformState.showAvatar, checked => platformState.showAvatar = checked)
+        );
       }
 
       const eventList = document.createElement("div");
@@ -866,7 +879,7 @@
       input.setAttribute("aria-label", `${platformDef.label} ${eventDef.label} alert template`);
       input.addEventListener("input", () => {
         eventState.template = input.value;
-        saveAndUpdate(false);
+        saveAndUpdate();
       });
       templateWrap.appendChild(input);
 
@@ -922,7 +935,7 @@
       input.type = "text";
       input.value = value || "";
       input.placeholder = placeholder;
-      input.addEventListener("input", () => { onInput(input.value); saveAndUpdate(false); });
+      input.addEventListener("input", () => { onInput(input.value); saveAndUpdate(); });
       return makeControl(label, "", input);
     }
 
@@ -931,7 +944,7 @@
       input.type = "password";
       input.value = value || "";
       input.placeholder = placeholder;
-      input.addEventListener("input", () => { onInput(input.value); saveAndUpdate(false); });
+      input.addEventListener("input", () => { onInput(input.value); saveAndUpdate(); });
       return makeControl(label, "", input);
     }
 
@@ -942,7 +955,7 @@
       input.min = min;
       input.max = max;
       input.step = step;
-      input.addEventListener("input", () => { onInput(input.value); saveAndUpdate(false); });
+      input.addEventListener("input", () => { onInput(input.value); saveAndUpdate(); });
       return makeControl(label, suffix, input);
     }
 
@@ -952,7 +965,7 @@
       input.value = value;
       input.min = min;
       input.max = max;
-      input.addEventListener("input", () => { onInput(input.value); saveAndUpdate(false); });
+      input.addEventListener("input", () => { onInput(input.value); saveAndUpdate(); });
       return makeControl(label, `${value}${suffix}`, input);
     }
 
@@ -960,7 +973,7 @@
       const input = document.createElement("input");
       input.type = "color";
       input.value = value || "#7869ff";
-      input.addEventListener("input", () => { onInput(input.value); saveAndUpdate(false); render(); });
+      input.addEventListener("input", () => { onInput(input.value); saveAndUpdate(); render(); });
       return makeControl(label, value, input);
     }
 
@@ -973,7 +986,7 @@
         select.appendChild(option);
       });
       select.value = value;
-      select.addEventListener("change", () => { onInput(select.value); saveAndUpdate(false); });
+      select.addEventListener("change", () => { onInput(select.value); saveAndUpdate(); });
       return makeControl(label, "", select);
     }
 
@@ -1042,7 +1055,7 @@
     }
 
     function saveAndUpdate(updatePreview = true) {
-      localStorage.setItem("spnMultiAlertsV010", JSON.stringify(state));
+      localStorage.setItem("spnMultiAlertsV011", JSON.stringify(state));
       updateOutput(updatePreview);
     }
 
